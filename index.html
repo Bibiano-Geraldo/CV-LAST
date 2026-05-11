@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Folio — CV conversacional</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --brand: #1A6D75;
+    --brand-ink: #0F4A50;
+    --brand-soft: #E8F3F4;
+    --lime: #99ED8D;
+    --lime-ink: #2C7A1F;
+
+    --bg: #FAFAF7;
+    --bg-elev: #FFFFFF;
+    --bg-tint: #F4F2EC;
+    --line: #E8E5DD;
+    --line-soft: #EFEDE5;
+    --ink: #1A1816;
+    --ink-2: #3A372F;
+    --ink-3: #6B6759;
+    --ink-4: #9C9787;
+
+    --radius: 14px;
+    --radius-sm: 10px;
+    --radius-xs: 6px;
+
+    --shadow-sm: 0 1px 0 rgba(15,16,12,.04), 0 1px 2px rgba(15,16,12,.04);
+    --shadow-md: 0 2px 6px rgba(15,16,12,.05), 0 8px 24px rgba(15,16,12,.06);
+    --shadow-lg: 0 12px 40px rgba(15,16,12,.10), 0 2px 8px rgba(15,16,12,.04);
+
+    --font-ui: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --font-serif: "Fraunces", "Instrument Serif", Georgia, serif;
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;background:radial-gradient(circle at top left, rgba(26,109,117,.08), transparent 20%), radial-gradient(circle at bottom right, rgba(153,237,141,.08), transparent 18%), var(--bg);color:var(--ink);font-family:var(--font-ui);font-feature-settings:"ss01","cv11"}
+  body{font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  button{font-family:inherit;cursor:pointer}
+  button:focus-visible{outline:3px solid rgba(26,109,117,.18);outline-offset:2px}
+  ::selection{background:color-mix(in oklab, var(--brand) 25%, transparent)}
+
+  /* Scrollbars — quiet */
+  *::-webkit-scrollbar{width:10px;height:10px}
+  *::-webkit-scrollbar-track{background:transparent}
+  *::-webkit-scrollbar-thumb{background:rgba(0,0,0,.10);border-radius:8px;border:2px solid transparent;background-clip:content-box}
+  *::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.20);background-clip:content-box;border:2px solid transparent}
+
+  /* App layout */
+  .app{display:grid;grid-template-columns:auto 1fr;height:100vh;height:100dvh;position:relative;background:var(--bg)}
+  .app.sb-open{grid-template-columns:264px 1fr}
+  .app.is-fullscreen .chat-panel{display:none}
+  .app.is-fullscreen .main{grid-template-columns:1fr}
+  .main{display:grid;grid-template-columns:minmax(420px, 1.05fr) minmax(620px, 1.2fr);grid-template-rows:minmax(0,1fr);min-height:0;min-width:0;gap:0;height:100%;overflow:hidden}
+  .main > section{min-height:0;min-width:0;overflow:hidden}
+
+  /* Mobile — single column, tab between chat / preview */
+  .app.is-mobile{grid-template-columns:1fr}
+  .app.is-mobile .main{grid-template-columns:1fr;position:relative}
+  .app.is-mobile .chat-panel,
+  .app.is-mobile section.chat-panel ~ section{
+    position:absolute;inset:0;height:100%;width:100%;transition:transform .25s cubic-bezier(.2,.9,.3,1)
+  }
+  .app.is-mobile.mv-chat .chat-panel{transform:translateX(0)}
+  .app.is-mobile.mv-chat .chat-panel ~ section{transform:translateX(100%);pointer-events:none}
+  .app.is-mobile.mv-preview .chat-panel{transform:translateX(-15%);opacity:.0;pointer-events:none}
+  .app.is-mobile.mv-preview .chat-panel ~ section{transform:translateX(0)}
+  .app.is-mobile .chat-panel{border-right:none}
+  .app.is-mobile .preview-btn{display:flex}
+
+  /* Mobile sidebar — overlay drawer */
+  .app.is-mobile aside{position:fixed;left:0;top:0;bottom:0;z-index:60;box-shadow:0 20px 40px rgba(15,16,12,.18)}
+  .sb-backdrop{position:fixed;inset:0;background:rgba(15,16,12,.32);z-index:55;animation:fadeIn .18s ease;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+  .mobile-menu-btn{position:fixed;top:10px;left:10px;z-index:50;width:36px;height:36px;border-radius:9px;background:var(--bg-elev);border:1px solid var(--line);box-shadow:var(--shadow-sm);display:flex;align-items:center;justify-content:center;color:var(--ink-2)}
+  .preview-btn{display:none}
+
+  @media (max-width: 760px){
+    .lbl-md{display:none}
+    .icon-only-mobile{padding:0;width:32px}
+    .icon-only-mobile > svg + .lbl-md{margin-left:0}
+  }
+
+  @media (min-width: 761px){
+    .mobile-menu-btn{display:none}
+  }
+
+  /* Compact desktop — let pages overflow but keep panel widths reasonable */
+  .app.is-compact .main{grid-template-columns:1fr 1.1fr}
+
+  /* Fullscreen preview */
+  .app.is-fullscreen .chat-panel{display:none !important}
+
+  /* Generic */
+  .icon-btn{appearance:none;border:0;background:transparent;color:var(--ink-3);width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s ease, color .12s ease, transform .14s ease}
+  .icon-btn:hover{background:rgba(15,16,12,.06);color:var(--ink);transform:translateY(-1px)}
+  .icon-btn.active{background:rgba(26,109,117,.10);color:var(--brand)}
+  .kbd{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3);background:var(--bg-tint);border:1px solid var(--line);border-bottom-width:1.5px;border-radius:5px;padding:1px 5px;line-height:1.2;letter-spacing:.02em}
+
+  .chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;color:var(--ink-2);background:var(--bg-elev);border:1px solid var(--line)}
+  .chip.brand{background:var(--brand-soft);color:var(--brand-ink);border-color:transparent}
+  .chip.lime{background:color-mix(in oklab, var(--lime) 28%, white);color:var(--lime-ink);border-color:transparent}
+
+  .btn{appearance:none;border:1px solid var(--line);background:var(--bg-elev);color:var(--ink);height:34px;padding:0 12px;border-radius:9px;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:7px;transition:all .12s ease;cursor:pointer}
+  .btn:hover{background:var(--bg-tint);transform:translateY(-1px)}
+  .btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+  .btn.primary{background:var(--brand);color:#fff;border-color:transparent;box-shadow:0 1px 0 rgba(255,255,255,.15) inset, 0 1px 2px rgba(15,16,12,.10)}
+  .btn.primary:hover{background:var(--brand-ink)}
+  .btn.lime{background:var(--lime);color:var(--lime-ink);border-color:transparent}
+  .btn.lime:hover{background:color-mix(in oklab, var(--lime) 80%, black 5%)}
+  .btn.ghost{background:transparent;border-color:transparent;color:var(--ink-2)}
+  .btn.ghost:hover{background:var(--bg-tint)}
+  .btn:active{transform:scale(.97)}
+  .pop-btn{transition:transform .14s cubic-bezier(.2,.9,.3,1), background .12s, border-color .12s, color .12s}
+  .pop-btn:hover{background:var(--bg-tint);color:var(--ink)}
+  .pop-btn:active{transform:scale(.96)}
+
+  /* Zoom control */
+  .zoom-btn{appearance:none;border:0;background:transparent;color:var(--ink-3);width:26px;height:30px;display:inline-flex;align-items:center;justify-content:center;transition:background .12s, color .12s, transform .12s}
+  .zoom-btn:hover{background:var(--bg-tint);color:var(--ink)}
+  .zoom-btn:active{transform:scale(.9)}
+  .zoom-val{height:30px;padding:0 9px;background:transparent;border:0;font-family:var(--font-mono);font-size:11.5px;color:var(--ink-2);min-width:46px;letter-spacing:.02em;transition:background .12s}
+  .zoom-val:hover{background:var(--bg-tint)}
+
+  /* Segmented toolbar — used in canvas header */
+  .seg{display:inline-flex;align-items:center;height:34px;border:1px solid var(--line);background:var(--bg-elev);border-radius:9px;overflow:hidden;box-shadow:0 1px 0 rgba(0,0,0,.02)}
+  .seg-btn{appearance:none;border:0;background:transparent;color:var(--ink-2);height:32px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;font:500 12.5px/1 var(--font);cursor:pointer;transition:background .12s ease, color .12s ease, transform .12s ease;min-width:32px;justify-content:center;letter-spacing:-.005em}
+  .seg-btn:hover{background:var(--bg-tint);color:var(--ink)}
+  .seg-btn:active{transform:scale(.96)}
+  .seg-wide{padding:0 11px 0 10px;color:var(--ink);font-weight:550}
+  .seg-zoom{min-width:54px;padding:0 8px;justify-content:center}
+  .seg-primary{background:var(--brand);color:#fff}
+  .seg-primary:hover{background:color-mix(in oklab, var(--brand) 88%, #000);color:#fff}
+  .seg-div{width:1px;height:18px;background:var(--line-soft);flex-shrink:0}
+
+  /* Subtle press feedback on interactive elements */
+  .icon-btn{transition:background .12s ease, color .12s ease, transform .14s cubic-bezier(.2,.9,.3,1)}
+  .icon-btn:active{transform:scale(.92)}
+
+  .chat-input{font:inherit;color:var(--ink);caret-color:var(--brand);width:100%;background:transparent;border:0;outline:none}
+  .chat-input::placeholder{color:rgba(26,109,117,.55)}
+  .panel-card{background:var(--bg-elev);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-sm)}
+  .section-title{font-size:11px;font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-4);}
+  .icon-btn, .btn, .seg-btn{cursor:pointer}
+  /* tooltip-ish caret */
+  .caret-pop{position:absolute;background:var(--bg-elev);border:1px solid var(--line);border-radius:14px;box-shadow:0 24px 64px rgba(15,16,12,.12);overflow:hidden;z-index:50}
+
+  /* No print, just on-screen prototype */
+</style>
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script>
+  const { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect } = React;
+</script>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Order matters: icons first, then templates, then sub-views, then app shell -->
+<script type="text/babel" src="components/icons.jsx"></script>
+<script type="text/babel" src="components/data.jsx"></script>
+<script type="text/babel" src="components/templates.jsx"></script>
+<script type="text/babel" src="components/popovers.jsx"></script>
+<!-- gallery temporarily disabled for debug
+<script type="text/babel" src="components/gallery.jsx"></script>
+-->
+<script type="text/babel" src="components/sidebar.jsx"></script>
+<script type="text/babel" src="components/chat.jsx"></script>
+<script type="text/babel" src="components/canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+</body>
+</html>
