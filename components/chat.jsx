@@ -3,7 +3,7 @@
 //  - conversation: message list + sticky input
 // Input has intelligent focus (autofocus, Cmd+K to refocus, focus after sending)
 
-function ChatPanel({ state, thread, onSubmit, onClearAttachments, attachments, onAddAttachment, language, onLanguageChange, showBack, onBack, onOpenPreview }) {
+function ChatPanel({ state, thread, onSubmit, onClearAttachments, attachments, onAddAttachment, language, onLanguageChange, showBack, onBack, onOpenPreview, onOpenMenu }) {
   const inputRef = useRef(null);
   const scrollRef = useRef(null);
   const [draft, setDraft] = useState("");
@@ -54,11 +54,16 @@ function ChatPanel({ state, thread, onSubmit, onClearAttachments, attachments, o
       borderRight:"1px solid var(--line)", background:"var(--bg)"
     }}>
       {/* Header */}
-      <header style={{
+      <header className="chat-header" style={{
         height:54, flexShrink:0, display:"flex", alignItems:"center", justifyContent:"space-between",
         padding:"0 16px", background:"var(--bg)", gap:10
       }}>
         <div style={{display:"flex", alignItems:"center", gap:8, minWidth:0, flex:1}}>
+          {onOpenMenu && (
+            <button className="icon-btn" onClick={onOpenMenu} aria-label="Abrir menu" style={{width:36, height:36, flexShrink:0}}>
+              <I.Menu size={18}/>
+            </button>
+          )}
           {showBack && (
             <button className="icon-btn" onClick={onBack} title="Voltar" style={{width:32, height:32, flexShrink:0}}>
               <I.ArrowLeft size={15}/>
@@ -103,7 +108,7 @@ function ChatPanel({ state, thread, onSubmit, onClearAttachments, attachments, o
 // ─────────────────────────────────────────────────────────────────────────────
 function EmptyState({ onPrompt }) {
   return (
-    <div style={{flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"40px 24px 30px", gap:32, animation:"fadeUp .3s ease"}}>
+    <div className="empty-hero" style={{flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"40px 24px 30px", gap:32, animation:"fadeUp .3s ease"}}>
       <div style={{display:"flex", flexDirection:"column", alignItems:"center", gap:12, textAlign:"center", maxWidth:520}}>
         <div style={{
           width:54, height:54, borderRadius:14, display:"flex", alignItems:"center", justifyContent:"center",
@@ -122,7 +127,7 @@ function EmptyState({ onPrompt }) {
       </div>
 
       {/* Quick prompts */}
-      <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, width:"100%", maxWidth:520}}>
+      <div className="quick-prompts" style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, width:"100%", maxWidth:520}}>
         {QUICK_PROMPTS.map((p, i) => {
           const Ic = I[p.icon];
           return (
@@ -161,7 +166,7 @@ function Conversation({ thread }) {
   const lastMessage = thread[thread.length - 1];
   const showTyping = lastMessage?.role === "user";
   return (
-    <div style={{padding:"22px 22px 12px", display:"flex", flexDirection:"column", gap:18, animation:"fadeUp .3s ease"}}>
+    <div className="chat-scroll-pad" style={{padding:"22px 22px 12px", display:"flex", flexDirection:"column", gap:18, animation:"fadeUp .3s ease"}}>
       <ContextStrip />
       {thread.map((m, i) => <Message key={i} m={m} />)}
       {showTyping && <ThinkingBubble />}
@@ -356,7 +361,7 @@ const Dot = ({delay}) => <span style={{width:5, height:5, borderRadius:99, backg
 // ─────────────────────────────────────────────────────────────────────────────
 function Composer({ inputRef, draft, onDraft, onKey, onSend, attachments, onAddAttachment, onClearAttachments, attachBtnRef, attachOpen, setAttachOpen, language, onLanguageChange, empty }) {
   return (
-    <div style={{flexShrink:0, padding:"10px 18px 18px"}}>
+    <div className="composer-wrap" style={{flexShrink:0, padding:"10px 18px 18px"}}>
       {/* Attachments row (only if any) */}
       {attachments.length > 0 && (
         <div style={{display:"flex", gap:6, marginBottom:8, flexWrap:"wrap"}}>

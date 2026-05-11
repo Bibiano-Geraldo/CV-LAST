@@ -1,15 +1,33 @@
 // Floating popovers used across the app.
 
-// Generic popover with auto-close on outside click
-function Popover({ open, onClose, anchor, children, side = "bottom", align = "end", offset = 8, width }) {
+// Generic popover with auto-close on outside click.
+// When bottomSheetOnMobile=true and viewport <900px, renders as a bottom sheet
+// with backdrop instead of an anchored popover.
+function Popover({ open, onClose, anchor, children, side = "bottom", align = "end", offset = 8, width, bottomSheetOnMobile = false }) {
   const ref = React.useRef(null);
   const [pos, setPos] = React.useState({ top: 0, left: 0 });
+  const [isSheet, setIsSheet] = React.useState(
+    () => bottomSheetOnMobile && typeof window !== "undefined" && window.innerWidth < 900
+  );
+  React.useEffect(() => {
+    if (!bottomSheetOnMobile) return;
+    const on = () => setIsSheet(window.innerWidth < 900);
+    on();
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, [bottomSheetOnMobile]);
+
+  // Effective width: shrink to viewport on small screens
+  const [effW, setEffW] = React.useState(width || 260);
 
   React.useLayoutEffect(() => {
-    if (!open || !anchor?.current) return;
+    if (!open || isSheet) return;
+    if (!anchor?.current) return;
     const r = anchor.current.getBoundingClientRect();
     const vw = window.innerWidth, vh = window.innerHeight;
-    const W = width || 260;
+    const reqW = width || 260;
+    const W = Math.min(reqW, vw - 24);
+    setEffW(W);
     // Estimate height — measured precisely after first paint
     const H = ref.current?.offsetHeight || 260;
     let top, left;
@@ -67,13 +85,47 @@ function Popover({ open, onClose, anchor, children, side = "bottom", align = "en
   }, [open, onClose]);
 
   if (!open) return null;
+  if (isSheet) {
+    return (
+      <>
+        <div onClick={onClose} style={{
+          position:"fixed", inset:0, background:"rgba(15,16,12,.32)", zIndex:69,
+          animation:"fadeIn .18s ease",
+          WebkitBackdropFilter:"blur(2px)", backdropFilter:"blur(2px)"
+        }}/>
+        <div ref={ref} className="caret-pop" style={{
+          position:"fixed",
+          left:0, right:0, bottom:0, top:"auto",
+          width:"100%", maxWidth:"100%",
+          maxHeight:"85dvh",
+          borderRadius:"16px 16px 0 0",
+          overflowY:"auto",
+          zIndex:70,
+          paddingBottom:"env(safe-area-inset-bottom)",
+          animation:"slideUp .22s cubic-bezier(.2,.9,.3,1)"
+        }}>
+          {/* Drag handle / grabber affordance */}
+          <div style={{
+            display:"flex", justifyContent:"center", padding:"8px 0 4px",
+            position:"sticky", top:0, background:"var(--bg-elev)", zIndex:1
+          }}>
+            <div style={{width:36, height:4, borderRadius:99, background:"var(--line)"}}/>
+          </div>
+          {children}
+        </div>
+      </>
+    );
+  }
   return (
     <div ref={ref}
          className="caret-pop"
          style={{
            top: pos.top,
            left: pos.left,
-           width: width,
+           width: effW,
+           maxWidth: "calc(100vw - 24px)",
+           maxHeight: "calc(100dvh - 24px)",
+           overflowY: "auto",
            animation: "popIn .14s cubic-bezier(.2,.9,.3,1)"
          }}>
       {children}
@@ -139,7 +191,7 @@ function AttachPopover({ open, anchor, onClose, onAttach }) {
     { icon: "Linkedin", label: "Importar do LinkedIn", hint: "puxa dados do perfil", kind:"linkedin" },
   ];
   return (
-    <Popover open={open} anchor={anchor} onClose={onClose} side="top" align="start" width={300} offset={10}>
+    <Popover open={open} anchor={anchor} onClose={onClose} side="top" align="start" width={300} offset={10} bottomSheetOnMobile>
       <div style={{padding:6}}>
         {items.map((it,i)=>{
           const Ic = I[it.icon];
@@ -170,7 +222,7 @@ function SharePopover({ open, anchor, onClose }) {
   const [copied, setCopied] = React.useState(false);
   const url = "folio.so/r/aicha-2026-lead-designer";
   return (
-    <Popover open={open} anchor={anchor} onClose={onClose} side="bottom" align="end" width={340} offset={8}>
+    <Popover open={open} anchor={anchor} onClose={onClose} side="bottom" align="end" width={340} offset={8} bottomSheetOnMobile>
       <div style={{padding:14, display:"flex", flexDirection:"column", gap:12}}>
         <div>
           <div style={{fontSize:13, fontWeight:600}}>Partilhar este currículo</div>
@@ -261,7 +313,7 @@ function DownloadPopover({ open, anchor, onClose }) {
     { icon: "FileText", label: "TXT simples",          sub: "Sem formatação" },
   ];
   return (
-    <Popover open={open} anchor={anchor} onClose={onClose} side="bottom" align="end" width={280} offset={8}>
+    <Popover open={open} anchor={anchor} onClose={onClose} side="bottom" align="end" width={280} offset={8} bottomSheetOnMobile>
       <div style={{padding:6}}>
         {opts.map((o,i)=>(
           <button key={i} onClick={onClose}
@@ -292,7 +344,7 @@ function TemplatePopover({ open, anchor, onClose, value, onChange, accent, onOpe
     { id:"bold",      swatches: ["#1A6D75","#fff"] },
   ];
   return (
-    <Popover open={open} anchor={anchor} onClose={onClose} side="bottom" align="end" width={420} offset={8}>
+    <Popover open={open} anchor={anchor} onClose={onClose} side="bottom" align="end" width={420} offset={8} bottomSheetOnMobile>
       <div style={{padding:"12px 14px 8px"}}>
         <div style={{display:"flex", justifyContent:"space-between", alignItems:"baseline"}}>
           <div style={{fontSize:13, fontWeight:600}}>Modelo</div>
@@ -398,13 +450,25 @@ function CustomizePanel({ open, onClose, accent, onAccent, fontSize, onFontSize,
   if (!open) return null;
   const palette = ["#1A6D75","#0F4A50","#3B4A6B","#7A4F22","#9A3B3B","#3A4A2A","#1a1816"];
   const fonts = ["DM Sans","Inter","Fraunces","Geist","Helvetica"];
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 900;
 
   return (
-    <div style={{
-      position:"absolute", right:14, top:60, bottom:14, width:280, zIndex:30,
-      background:"var(--bg-elev)", border:"1px solid var(--line)", borderRadius:14,
-      boxShadow:"var(--shadow-lg)", display:"flex", flexDirection:"column",
-      animation:"slideIn .18s cubic-bezier(.2,.9,.3,1)"
+    <div className="customize-panel" style={{
+      position: isMobile ? "fixed" : "absolute",
+      right: isMobile ? 0 : 14,
+      left: isMobile ? 0 : "auto",
+      top: isMobile ? "auto" : 60,
+      bottom: isMobile ? 0 : 14,
+      width: isMobile ? "100%" : 280,
+      maxHeight: isMobile ? "85dvh" : "auto",
+      zIndex: isMobile ? 70 : 30,
+      background:"var(--bg-elev)",
+      border:"1px solid var(--line)",
+      borderRadius: isMobile ? "16px 16px 0 0" : 14,
+      boxShadow:"var(--shadow-lg)",
+      display:"flex", flexDirection:"column",
+      animation: isMobile ? "slideUp .22s cubic-bezier(.2,.9,.3,1)" : "slideIn .18s cubic-bezier(.2,.9,.3,1)",
+      paddingBottom: isMobile ? "env(safe-area-inset-bottom)" : 0
     }}>
       <header style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 14px 10px", borderBottom:"1px solid var(--line-soft)"}}>
         <div style={{display:"flex", alignItems:"center", gap:8}}>
@@ -507,6 +571,7 @@ const Toggle = ({ label, on }) => {
   s.textContent = `
     @keyframes popIn{from{opacity:0;transform:translateY(-4px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
     @keyframes slideIn{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
     @keyframes drawerIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
     @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
     @keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}

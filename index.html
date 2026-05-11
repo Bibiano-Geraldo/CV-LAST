@@ -40,12 +40,17 @@
     --font-serif: "Fraunces", "Instrument Serif", Georgia, serif;
   }
 
-  *{box-sizing:border-box}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0;height:100%;overflow:hidden;background:radial-gradient(circle at top left, rgba(26,109,117,.08), transparent 20%), radial-gradient(circle at bottom right, rgba(153,237,141,.08), transparent 18%), var(--bg);color:var(--ink);font-family:var(--font-ui);font-feature-settings:"ss01","cv11"}
-  body{font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-  button{font-family:inherit;cursor:pointer}
+  body{font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overscroll-behavior:none}
+  button{font-family:inherit;cursor:pointer;touch-action:manipulation}
   button:focus-visible{outline:3px solid rgba(26,109,117,.18);outline-offset:2px}
+  input,textarea{font-size:16px} /* prevent iOS zoom on focus */
+  @media (min-width: 901px){ input,textarea{font-size:inherit} }
   ::selection{background:color-mix(in oklab, var(--brand) 25%, transparent)}
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+  }
 
   /* Scrollbars — quiet */
   *::-webkit-scrollbar{width:10px;height:10px}
@@ -58,7 +63,7 @@
   .app.sb-open{grid-template-columns:264px 1fr}
   .app.is-fullscreen .chat-panel{display:none}
   .app.is-fullscreen .main{grid-template-columns:1fr}
-  .main{display:grid;grid-template-columns:minmax(420px, 1.05fr) minmax(620px, 1.2fr);grid-template-rows:minmax(0,1fr);min-height:0;min-width:0;gap:0;height:100%;overflow:hidden}
+  .main{display:grid;grid-template-columns:minmax(360px, 1.05fr) minmax(520px, 1.2fr);grid-template-rows:minmax(0,1fr);min-height:0;min-width:0;gap:0;height:100%;overflow:hidden}
   .main > section{min-height:0;min-width:0;overflow:hidden}
 
   /* Mobile — single column, tab between chat / preview */
@@ -75,20 +80,34 @@
   .app.is-mobile .chat-panel{border-right:none}
   .app.is-mobile .preview-btn{display:flex}
 
-  /* Mobile sidebar — overlay drawer */
-  .app.is-mobile aside{position:fixed;left:0;top:0;bottom:0;z-index:60;box-shadow:0 20px 40px rgba(15,16,12,.18)}
+  /* Mobile sidebar — overlay drawer (with safe-area + max-width on tiny phones).
+     Scoped to direct child so it does NOT match <aside> inside CV templates. */
+  .app.is-mobile > aside{position:fixed !important;left:0;top:0;bottom:0;z-index:60 !important;box-shadow:0 20px 40px rgba(15,16,12,.18);max-width:min(280px, 86vw);padding-left:env(safe-area-inset-left);padding-bottom:env(safe-area-inset-bottom)}
   .sb-backdrop{position:fixed;inset:0;background:rgba(15,16,12,.32);z-index:55;animation:fadeIn .18s ease;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
-  .mobile-menu-btn{position:fixed;top:10px;left:10px;z-index:50;width:36px;height:36px;border-radius:9px;background:var(--bg-elev);border:1px solid var(--line);box-shadow:var(--shadow-sm);display:flex;align-items:center;justify-content:center;color:var(--ink-2)}
+  /* mobile-menu-btn removed — menu is now inside the chat header */
   .preview-btn{display:none}
 
-  @media (max-width: 760px){
+  /* Hide medium-screen labels on phones; collapse buttons to icons */
+  @media (max-width: 900px){
     .lbl-md{display:none}
     .icon-only-mobile{padding:0;width:32px}
     .icon-only-mobile > svg + .lbl-md{margin-left:0}
+    /* Bigger touch targets — only on header/toolbar buttons, not nested ones */
+    .chat-header > div > .icon-btn,
+    .canvas-header .icon-btn{min-width:36px;min-height:36px}
+    .canvas-header .seg-btn{min-height:34px}
+    .composer-wrap .btn,
+    .canvas-header .btn{min-height:36px}
   }
 
-  @media (min-width: 761px){
+  @media (min-width: 901px){
     .mobile-menu-btn{display:none}
+  }
+
+  /* Small desktop (901–1180): tighter two-column for narrow laptops */
+  @media (min-width: 901px) and (max-width: 1180px){
+    .main{grid-template-columns:minmax(340px, 1fr) minmax(440px, 1.1fr)}
+    .app.sb-open{grid-template-columns:232px 1fr}
   }
 
   /* Compact desktop — let pages overflow but keep panel widths reasonable */
@@ -96,6 +115,60 @@
 
   /* Fullscreen preview */
   .app.is-fullscreen .chat-panel{display:none !important}
+
+  /* Empty-state hero scales with viewport */
+  .empty-hero h1{font-size:clamp(22px, 5.2vw, 32px) !important;line-height:1.08}
+  .empty-hero p{font-size:clamp(13px, 3.4vw, 14px) !important}
+  .empty-hero{padding:clamp(20px, 6vw, 40px) clamp(16px, 5vw, 24px) 30px !important;gap:clamp(20px, 4vw, 32px) !important}
+
+  /* Quick prompts: 1 col on very narrow phones */
+  @media (max-width: 380px){
+    .quick-prompts{grid-template-columns:1fr !important}
+  }
+
+  /* Composer paddings + chat scroll paddings shrink on phones */
+  @media (max-width: 900px){
+    .composer-wrap{padding:8px 12px calc(14px + env(safe-area-inset-bottom)) !important}
+    .chat-scroll-pad{padding:18px 14px 8px !important}
+    .chat-header{padding:0 12px !important; gap:8px}
+    .canvas-header{padding:0 10px !important; gap:6px !important}
+    /* Make canvas scroll padding smaller so A4 has more room */
+    .canvas-scroll{padding:14px 8px 40px !important}
+  }
+
+  /* Phone landscape — give chat space, reduce hero */
+  @media (max-width: 900px) and (orientation: landscape){
+    .empty-hero{padding:14px 16px !important;gap:14px !important}
+    .empty-hero h1{font-size:22px !important}
+  }
+
+  /* Standardize canvas header heights at all sizes for visual consistency */
+  .canvas-header .seg{height:36px}
+  .canvas-header .seg-btn{height:34px;min-height:34px}
+  .canvas-header .icon-btn{height:36px}
+
+  /* Truncate template name & shrink seg paddings on small phones */
+  @media (max-width: 480px){
+    .seg-wide > span{max-width:64px !important;font-size:12px}
+    .seg-btn{padding:0 8px;font-size:12px}
+    .canvas-header{gap:6px !important}
+  }
+  /* Very narrow phones: hide template name entirely, leave only the layers icon */
+  @media (max-width: 400px){
+    .seg-wide > span{display:none}
+    .seg-wide{padding:0 8px}
+    /* Customize is accessible from inside the Template popover; drop it from header */
+    .canvas-header .seg-btn[aria-label="Personalizar"]{display:none}
+    .canvas-header .seg:has(.seg-btn[aria-label="Personalizar"]) .seg-div{display:none}
+  }
+
+  /* Long-text wrap safety for narrow chat bubbles */
+  .chat-scroll-pad{word-wrap:break-word;overflow-wrap:anywhere}
+
+  /* Document preview: native A4 layout preserved on all viewports. The
+     page-break gap auto-compensates for the zoom via --cv-inv-zoom (set on
+     the canvas wrapper), so the gap between pages is always ~40px visual
+     whether the user is on desktop at zoom 1.0 or mobile at zoom 0.4. */
 
   /* Generic */
   .icon-btn{appearance:none;border:0;background:transparent;color:var(--ink-3);width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s ease, color .12s ease, transform .14s ease}

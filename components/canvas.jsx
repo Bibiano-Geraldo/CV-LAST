@@ -8,6 +8,20 @@ function CanvasPanel({ template, accent, zoom, onZoom, fitMode, onFitMode, onOpe
                        fontSize, onFontSize, lineHeight, onLineHeight, density, onDensity, onAccent }) {
   const Tpl = TEMPLATES[template].render;
   const scrollRef = _cuRef(null);
+  const docRef = _cuRef(null);
+  const [docH, setDocH] = React.useState(1123);
+
+  // Track the actual unscaled content height so we can reserve the right
+  // scaled height in the layout box (transform doesn't reserve space).
+  _cuEff(() => {
+    if (!docRef.current) return;
+    const el = docRef.current;
+    const update = () => setDocH(el.offsetHeight || 1123);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [template, isEmpty, fontSize, lineHeight, density]);
 
   // Fit-zoom auto-recompute on resize when fitMode active
   _cuEff(() => {
@@ -15,8 +29,9 @@ function CanvasPanel({ template, accent, zoom, onZoom, fitMode, onFitMode, onOpe
     const el = scrollRef.current;
     const recalc = () => {
       const w = el.clientWidth;
-      // Account for padding 32px each side + a bit of breathing room
-      const fit = Math.min(1.2, Math.max(0.35, (w - 48) / 794));
+      // Breathing room scales: phones get 24px total, desktop gets 48px
+      const pad = w < 600 ? 24 : 48;
+      const fit = Math.min(1.2, Math.max(0.28, (w - pad) / 794));
       onZoom(+fit.toFixed(3));
     };
     recalc();
@@ -31,28 +46,31 @@ function CanvasPanel({ template, accent, zoom, onZoom, fitMode, onFitMode, onOpe
       background:"var(--bg-tint)", position:"relative"
     }}>
       {/* Unified toolbar — all controls share segmented chrome */}
-      <header style={{
+      <header className="canvas-header" style={{
         height:56, flexShrink:0, display:"flex", alignItems:"center", justifyContent:"space-between",
-        padding:"0 14px", borderBottom:"1px solid var(--line-soft)", background:"var(--bg)", gap:10,
-        zIndex:4
+        padding:"0 14px", borderBottom:"1px solid var(--line-soft)", background:"var(--bg)", gap:8,
+        zIndex:4, flexWrap:"nowrap"
       }}>
-        {/* LEFT: Document segment */}
-        <div className="seg" style={{minWidth:0, flex:"0 1 auto"}}>
+        {/* LEFT: Back (mobile) + Document segment */}
+        <div style={{display:"flex", alignItems:"center", gap:8, minWidth:0, flex:"0 1 auto"}}>
           {isMobile && (
-            <button className="seg-btn" onClick={onBack} title="Voltar ao chat" aria-label="Voltar">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            <button className="icon-btn" onClick={onBack} title="Voltar ao chat" aria-label="Voltar ao chat"
+                    style={{width:36, height:36, flexShrink:0, background:"var(--bg-elev)", border:"1px solid var(--line)"}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
           )}
-          <button ref={templateBtnRef} className="seg-btn seg-wide" onClick={onOpenTemplate}>
-            <I.Layers size={13}/>
-            <span style={{whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:140}}>{TEMPLATES[template].name}</span>
-            <I.ChevronDown size={11} style={{color:"var(--ink-3)", flexShrink:0, marginLeft:-2}}/>
-          </button>
-          <div className="seg-div"/>
-          <button className="seg-btn" onClick={onOpenCustomize} title="Personalizar">
-            <I.Palette size={13}/>
-            <span className="lbl-md">Personalizar</span>
-          </button>
+          <div className="seg" style={{minWidth:0, flex:"0 1 auto"}}>
+            <button ref={templateBtnRef} className="seg-btn seg-wide" onClick={onOpenTemplate}>
+              <I.Layers size={13}/>
+              <span style={{whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:140}}>{TEMPLATES[template].name}</span>
+              <I.ChevronDown size={11} style={{color:"var(--ink-3)", flexShrink:0, marginLeft:-2}}/>
+            </button>
+            <div className="seg-div"/>
+            <button className="seg-btn" onClick={onOpenCustomize} title="Personalizar" aria-label="Personalizar">
+              <I.Palette size={13}/>
+              <span className="lbl-md">Personalizar</span>
+            </button>
+          </div>
         </div>
 
         {/* RIGHT: View + Share segment */}
@@ -100,11 +118,25 @@ function CanvasPanel({ template, accent, zoom, onZoom, fitMode, onFitMode, onOpe
         background:"radial-gradient(ellipse at top, color-mix(in oklab, var(--brand) 4%, transparent) 0%, transparent 50%), var(--bg-tint)"
       }}>
         <div style={{
-          transform:`scale(${zoom})`, transformOrigin:"top center",
-          display:"flex", flexDirection:"column", alignItems:"center",
-          transition:"transform .2s cubic-bezier(.2,.9,.3,1)"
+          /* Reserve the scaled width and height so the scroll container doesn't
+             leave empty space (transform doesn't affect layout box). */
+          width: 794 * zoom,
+          height: docH * zoom,
+          position: "relative",
+          flexShrink: 0
         }}>
-          {isEmpty ? <EmptyDoc/> : <Tpl cv={SAMPLE_CV} accent={accent} showPins={showPins} fontSize={fontSize} lineHeight={lineHeight}/>}
+          <div ref={docRef} className="cv-doc" style={{
+            transform:`scale(${zoom})`, transformOrigin:"top left",
+            width: 794,
+            position: "absolute", top: 0, left: 0,
+            display:"flex", flexDirection:"column", alignItems:"center",
+            transition:"transform .2s cubic-bezier(.2,.9,.3,1)",
+            /* Inverse zoom so children can compensate the scale (e.g. the
+               page-break gap stays visually constant regardless of zoom). */
+            "--cv-inv-zoom": 1/Math.max(zoom, 0.01)
+          }}>
+            {isEmpty ? <EmptyDoc/> : <Tpl cv={SAMPLE_CV} accent={accent} showPins={showPins} fontSize={fontSize} lineHeight={lineHeight}/>}
+          </div>
         </div>
       </div>
 

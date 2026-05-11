@@ -16,7 +16,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 function useViewport() {
   const get = () => {
     const w = window.innerWidth;
-    return { w, isMobile: w < 760, isCompact: w < 1100 };
+    return { w, isMobile: w < 900, isCompact: w < 1180 };
   };
   const [v, setV] = useState(get);
   useEffect(() => {
@@ -147,13 +147,6 @@ function App() {
         />
       ) : null}
 
-      {/* Floating menu button on mobile when sidebar closed */}
-      {vp.isMobile && !sidebarOpen && (
-        <button className="mobile-menu-btn" onClick={()=>setSidebarOpen(true)} aria-label="Abrir menu">
-          <I.Menu size={18}/>
-        </button>
-      )}
-
       <div className="main">
         <ChatPanel
           state={chatState}
@@ -165,6 +158,7 @@ function App() {
           language={language}
           onLanguageChange={setLanguage}
           showBack={false}
+          onOpenMenu={vp.isMobile && !sidebarOpen ? (()=>setSidebarOpen(true)) : null}
           onOpenPreview={vp.isMobile ? (()=>setMobileView("preview")) : null}
         />
 
