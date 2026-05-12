@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { I } from "@/components/icons";
+import { useViewport } from "@/hooks/useViewport";
 
 const palette = ["#1A6D75", "#0F4A50", "#3B4A6B", "#7A4F22", "#9A3B3B", "#3A4A2A", "#1a1816"];
 const fonts = ["DM Sans", "Inter", "Fraunces", "Geist", "Helvetica"];
+const margins = ["Estreita", "Padrão", "Larga"];
 
 export function CustomizePanel({
   open,
@@ -29,15 +31,16 @@ export function CustomizePanel({
   density: string;
   onDensity: (v: string) => void;
 }) {
-  const [isMobile, setIsMobile] = useState<boolean>(
-    () => typeof window !== "undefined" && window.innerWidth < 900,
-  );
+  const vp = useViewport();
+  const isMobile = vp.isMobile;
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const on = () => setIsMobile(window.innerWidth < 900);
-    window.addEventListener("resize", on);
-    return () => window.removeEventListener("resize", on);
-  }, []);
+  const [font, setFont] = useState("DM Sans");
+  const [margin, setMargin] = useState("Padrão");
+  const [showPhoto, setShowPhoto] = useState(true);
+  const [showColorHeader, setShowColorHeader] = useState(true);
+  const [showAiComments, setShowAiComments] = useState(true);
+  const [showWatermark, setShowWatermark] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -45,6 +48,21 @@ export function CustomizePanel({
     document.addEventListener("keydown", onEsc);
     return () => document.removeEventListener("keydown", onEsc);
   }, [open, onClose]);
+
+  useEffect(() => {
+    if (!open || isMobile) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node | null;
+      if (!t || !panelRef.current) return;
+      if (panelRef.current.contains(t)) return;
+      // Ignore clicks on the trigger button (so it can toggle, not double-fire)
+      const trigger = (t as HTMLElement).closest?.('[data-customize-trigger]');
+      if (trigger) return;
+      onClose();
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open, isMobile, onClose]);
 
   if (!open) return null;
 
@@ -87,10 +105,12 @@ export function CustomizePanel({
             {fonts.map((f) => (
               <button
                 key={f}
+                onClick={() => setFont(f)}
                 style={{
                   height: 30, fontSize: 12, fontFamily: f,
-                  border: "1px solid var(--line)", borderRadius: 7,
-                  background: f === "DM Sans" ? "var(--bg-tint)" : "var(--bg-elev)",
+                  border: f === font ? "1.5px solid var(--brand)" : "1px solid var(--line)",
+                  borderRadius: 7,
+                  background: f === font ? "var(--bg-tint)" : "var(--bg-elev)",
                   color: "var(--ink)",
                 }}
               >
@@ -138,13 +158,15 @@ export function CustomizePanel({
 
         <Section title="Margens da página">
           <div style={{ display: "flex", gap: 4 }}>
-            {["Estreita", "Padrão", "Larga"].map((m, i) => (
+            {margins.map((m) => (
               <button
                 key={m}
+                onClick={() => setMargin(m)}
                 style={{
                   flex: 1, height: 28, fontSize: 11.5,
-                  border: "1px solid var(--line)", borderRadius: 7,
-                  background: i === 1 ? "var(--bg-tint)" : "var(--bg-elev)",
+                  border: m === margin ? "1.5px solid var(--brand)" : "1px solid var(--line)",
+                  borderRadius: 7,
+                  background: m === margin ? "var(--bg-tint)" : "var(--bg-elev)",
                   color: "var(--ink-2)",
                 }}
               >
@@ -155,10 +177,10 @@ export function CustomizePanel({
         </Section>
 
         <Section title="Mostrar">
-          <Toggle label="Foto de perfil" defaultOn />
-          <Toggle label="Cabeçalho colorido" defaultOn />
-          <Toggle label="Comentários da IA" defaultOn />
-          <Toggle label="Marca d'água «criado em Folio»" />
+          <Toggle label="Foto de perfil" value={showPhoto} onChange={setShowPhoto} />
+          <Toggle label="Cabeçalho colorido" value={showColorHeader} onChange={setShowColorHeader} />
+          <Toggle label="Comentários da IA" value={showAiComments} onChange={setShowAiComments} />
+          <Toggle label="Marca d'água «criado em Folio»" value={showWatermark} onChange={setShowWatermark} />
         </Section>
       </div>
     </>
@@ -205,6 +227,7 @@ export function CustomizePanel({
 
   return (
     <div
+      ref={panelRef}
       className="customize-panel"
       style={{
         position: "absolute",
@@ -236,13 +259,13 @@ function Section({ title, right, children }: { title: string; right?: ReactNode;
   );
 }
 
-function Toggle({ label, defaultOn }: { label: string; defaultOn?: boolean }) {
-  const [v, setV] = useState(!!defaultOn);
+function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+  const v = value;
   return (
     <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", fontSize: 12.5, color: "var(--ink-2)" }}>
       <span>{label}</span>
       <button
-        onClick={() => setV(!v)}
+        onClick={() => onChange(!v)}
         type="button"
         style={{
           width: 32, height: 18,

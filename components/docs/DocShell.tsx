@@ -1,122 +1,85 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { Sidebar } from "@/components/sidebar/Sidebar";
-import { AvatarPopover } from "@/components/popovers/AvatarPopover";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { Popover } from "@/components/popovers/Popover";
-import { RECENT_CHATS, SAMPLE_CVS, type SavedCV } from "@/lib/data";
-import { useViewport } from "@/hooks/useViewport";
+import { SAMPLE_CVS, SAMPLE_LETTERS, type DocKind, type SavedDoc } from "@/lib/data";
 import { I } from "@/components/icons";
-import { CVGallery } from "./CVGallery";
+import { DocGallery } from "@/components/docs/DocGallery";
 
 type View = "grid" | "list";
 type Sort = "recent" | "name" | "starred";
 
-export function CurriculosShell() {
-  const vp = useViewport();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+type KindConfig = {
+  source: SavedDoc[];
+  title: string;
+  ctaLabel: string;
+  emptyEditorHint: string;
+};
+
+const KIND_CONFIG: Record<DocKind, KindConfig> = {
+  cv: {
+    source: SAMPLE_CVS,
+    title: "Os meus currículos",
+    ctaLabel: "Novo currículo",
+    emptyEditorHint:
+      "Começa uma conversa no editor — o primeiro currículo é construído enquanto falas.",
+  },
+  letter: {
+    source: SAMPLE_LETTERS,
+    title: "As minhas cartas",
+    ctaLabel: "Nova carta",
+    emptyEditorHint:
+      "Começa uma conversa no editor — a primeira carta nasce ali, à medida que falas.",
+  },
+};
+
+const TABS: { kind: DocKind; label: string; href: string }[] = [
+  { kind: "cv", label: "Currículos", href: "/curriculos" },
+  { kind: "letter", label: "Cartas", href: "/cartas" },
+];
+
+export function DocShell({ kind }: { kind: DocKind }) {
+  const cfg = KIND_CONFIG[kind];
   const [view, setView] = useState<View>("grid");
   const [sort, setSort] = useState<Sort>("recent");
   const [query, setQuery] = useState("");
 
-  const avatarRef = useRef<HTMLButtonElement>(null);
-  const [avatarOpen, setAvatarOpen] = useState(false);
-
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let list: SavedCV[] = q
-      ? SAMPLE_CVS.filter(
+    let list: SavedDoc[] = q
+      ? cfg.source.filter(
           (c) => c.name.toLowerCase().includes(q) || c.tag?.toLowerCase().includes(q),
         )
-      : SAMPLE_CVS.slice();
+      : cfg.source.slice();
     if (sort === "name") list.sort((a, b) => a.name.localeCompare(b.name));
     if (sort === "starred")
       list.sort((a, b) => Number(!!b.starred) - Number(!!a.starred));
     return list;
-  }, [query, sort]);
-
-  const cls = [
-    "app",
-    sidebarOpen && !vp.isMobile ? "sb-open" : "",
-    vp.isMobile ? "is-mobile" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  }, [query, sort, cfg.source]);
 
   return (
-    <div className={cls}>
-      {vp.isMobile && sidebarOpen && (
-        <div className="sb-backdrop" onClick={() => setSidebarOpen(false)} />
-      )}
-      {(!vp.isMobile || sidebarOpen) && (
-        <Sidebar
-          open={sidebarOpen}
-          onToggle={() => setSidebarOpen((v) => !v)}
-          avatarRef={avatarRef}
-          onAvatarClick={() => setAvatarOpen(true)}
-          chats={RECENT_CHATS}
-          activeChatId={null}
-          onSelectChat={(id) => {
-            window.location.href = `/?chat=${id}`;
-          }}
-          onNewChat={() => {
-            window.location.href = "/";
-          }}
-        />
-      )}
+    <div
+      style={{
+        minHeight: "100vh",
+        background:
+          "radial-gradient(ellipse 700px 420px at 8% -6%, color-mix(in oklab, var(--brand) 7%, transparent) 0%, transparent 70%), radial-gradient(ellipse 600px 420px at 96% 4%, color-mix(in oklab, var(--lime) 7%, transparent) 0%, transparent 70%), var(--bg)",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <TopBar activeKind={kind} />
 
-      <main
-        className="cv-main"
-        style={{
-          minWidth: 0,
-          minHeight: 0,
-          overflow: "auto",
-          background:
-            "radial-gradient(ellipse 700px 420px at 8% -6%, color-mix(in oklab, var(--brand) 7%, transparent) 0%, transparent 70%), radial-gradient(ellipse 600px 420px at 96% 4%, color-mix(in oklab, var(--lime) 7%, transparent) 0%, transparent 70%), var(--bg)",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        {/* Top app bar — mobile only */}
-        {vp.isMobile && !sidebarOpen && (
-          <div
-            style={{
-              position: "sticky",
-              top: 0,
-              zIndex: 10,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "12px 14px",
-              background: "var(--bg)",
-              borderBottom: "1px solid var(--line-soft)",
-            }}
-          >
-            <button
-              className="icon-btn"
-              onClick={() => setSidebarOpen(true)}
-              aria-label="Abrir menu"
-              style={{ width: 36, height: 36 }}
-            >
-              <I.Menu size={18} />
-            </button>
-            <span style={{ fontSize: 14, fontWeight: 500, color: "var(--ink)" }}>
-              Os meus currículos
-            </span>
-          </div>
-        )}
-
+      <main style={{ flex: 1, minWidth: 0 }}>
         <div
           className="cv-page"
           style={{
-            flex: 1,
             maxWidth: 1240,
             width: "100%",
             margin: "0 auto",
-            padding: "56px 32px 80px",
+            padding: "44px 32px 80px",
           }}
         >
-          {/* Page header */}
           <header
             style={{
               display: "flex",
@@ -139,6 +102,8 @@ export function CurriculosShell() {
                 }}
               />
               <div
+                className="tabular"
+                aria-live="polite"
                 style={{
                   fontFamily: "var(--font-mono)",
                   fontSize: 11,
@@ -149,8 +114,8 @@ export function CurriculosShell() {
                 }}
               >
                 {query
-                  ? `${filtered.length} de ${SAMPLE_CVS.length} documentos`
-                  : `${SAMPLE_CVS.length} documentos`}
+                  ? `${filtered.length} de ${cfg.source.length} documentos`
+                  : `${cfg.source.length} documentos`}
               </div>
               <h1
                 style={{
@@ -163,7 +128,7 @@ export function CurriculosShell() {
                   color: "var(--ink)",
                 }}
               >
-                Os meus currículos
+                {cfg.title}
               </h1>
             </div>
 
@@ -183,14 +148,13 @@ export function CurriculosShell() {
                   "0 1px 0 var(--brand-ink), 0 6px 18px color-mix(in oklab, var(--brand) 22%, transparent)",
               }}
             >
-              <span>Novo currículo</span>
+              <span>{cfg.ctaLabel}</span>
               <span className="cta-arrow" aria-hidden style={{ width: 26, height: 26, fontSize: 16, fontWeight: 400, lineHeight: 1 }}>
                 +
               </span>
             </button>
           </header>
 
-          {/* Toolbar */}
           <Toolbar
             query={query}
             onQuery={setQuery}
@@ -200,18 +164,118 @@ export function CurriculosShell() {
             onView={setView}
           />
 
-          {/* Gallery */}
           <div style={{ marginTop: 24 }}>
             {filtered.length === 0 ? (
-              <EmptyState query={query} />
+              <EmptyState query={query} hint={cfg.emptyEditorHint} />
             ) : (
-              <CVGallery items={filtered} view={view} />
+              <DocGallery items={filtered} view={view} />
             )}
           </div>
         </div>
       </main>
+    </div>
+  );
+}
 
-      <AvatarPopover open={avatarOpen} anchor={avatarRef} onClose={() => setAvatarOpen(false)} />
+function TopBar({ activeKind }: { activeKind: DocKind }) {
+  return (
+    <div
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 20,
+        height: 56,
+        display: "grid",
+        gridTemplateColumns: "1fr auto 1fr",
+        alignItems: "center",
+        gap: 12,
+        padding: "0 20px",
+        background: "color-mix(in oklab, var(--bg) 82%, transparent)",
+        WebkitBackdropFilter: "saturate(160%) blur(10px)",
+        backdropFilter: "saturate(160%) blur(10px)",
+        borderBottom: "1px solid var(--line-soft)",
+      }}
+    >
+      {/* Left — back to chat */}
+      <div style={{ justifySelf: "start" }}>
+        <Link
+          href="/"
+          className="topbar-back"
+          aria-label="Voltar ao chat"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            height: 34,
+            padding: "0 14px 0 11px",
+            borderRadius: 999,
+            background: "transparent",
+            border: "1px solid transparent",
+            color: "var(--ink-3)",
+            fontSize: 13,
+            fontWeight: 500,
+            textDecoration: "none",
+            letterSpacing: "-.002em",
+            whiteSpace: "nowrap",
+            lineHeight: 1,
+          }}
+        >
+          <I.ArrowLeft size={14} style={{ flexShrink: 0 }} />
+          <span>Voltar ao chat</span>
+        </Link>
+      </div>
+
+      {/* Center — tabs */}
+      <nav
+        aria-label="Galerias"
+        className="topbar-tabs"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 2,
+          padding: 4,
+          background: "var(--bg-elev)",
+          border: "1px solid var(--line)",
+          borderRadius: 10,
+          boxShadow: "0 1px 0 rgba(0,0,0,.02)",
+        }}
+      >
+        {TABS.map((t) => {
+          const active = t.kind === activeKind;
+          return (
+            <Link
+              key={t.kind}
+              href={t.href as never}
+              aria-current={active ? "page" : undefined}
+              className={`topbar-tab${active ? " is-active" : ""}`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: 28,
+                padding: "0 16px",
+                borderRadius: 7,
+                fontSize: 13,
+                fontWeight: 500,
+                letterSpacing: "-.005em",
+                color: active ? "var(--brand)" : "var(--ink-2)",
+                background: active ? "var(--brand-soft)" : "transparent",
+                boxShadow: active
+                  ? "inset 0 0 0 1px color-mix(in oklab, var(--brand) 18%, transparent)"
+                  : "none",
+                textDecoration: "none",
+                whiteSpace: "nowrap",
+                lineHeight: 1,
+              }}
+            >
+              {t.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Right — intentionally empty: this view has a single purpose */}
+      <div />
     </div>
   );
 }
@@ -231,6 +295,23 @@ function Toolbar({
   view: "grid" | "list";
   onView: (v: "grid" | "list") => void;
 }) {
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [isMac, setIsMac] = useState(false);
+
+  useEffect(() => {
+    setIsMac(typeof navigator !== "undefined" && /Mac|iPhone|iPad/i.test(navigator.platform));
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
     <div
       style={{
@@ -242,8 +323,9 @@ function Toolbar({
         borderBottom: "1px solid var(--line-soft)",
       }}
     >
-      {/* Search */}
       <div
+        className="gallery-search"
+        title={`Procurar (${isMac ? "⌘" : "Ctrl"} K)`}
         style={{
           flex: "1 1 240px",
           minWidth: 220,
@@ -251,18 +333,25 @@ function Toolbar({
           alignItems: "center",
           gap: 8,
           height: 36,
-          padding: "0 12px",
+          padding: "0 8px 0 12px",
           background: "var(--bg-elev)",
           border: "1px solid var(--line)",
           borderRadius: 10,
         }}
       >
-        <I.Search size={14} style={{ color: "var(--ink-3)" }} />
+        <I.Search size={14} style={{ color: "var(--ink-3)", transition: "color .15s ease" }} />
         <input
+          ref={searchRef}
           value={query}
           onChange={(e) => onQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && query) {
+              onQuery("");
+              (e.target as HTMLInputElement).blur();
+            }
+          }}
           placeholder="Procurar por nome ou etiqueta…"
-          aria-label="Procurar"
+          aria-label={`Procurar (${isMac ? "⌘" : "Ctrl"} K)`}
           style={{
             flex: 1,
             border: 0,
@@ -272,6 +361,7 @@ function Toolbar({
             color: "var(--ink)",
             fontFamily: "inherit",
             minWidth: 0,
+            padding: 0,
           }}
         />
         {query && (
@@ -286,17 +376,15 @@ function Toolbar({
         )}
       </div>
 
-      {/* Sort */}
       <SortDropdown sort={sort} onSort={onSort} />
 
-      {/* View toggle */}
-      <div className="seg" style={{ height: 36 }}>
+      <div className="seg" role="group" aria-label="Vista" style={{ height: 36 }}>
         <button
           type="button"
           onClick={() => onView("grid")}
           aria-label="Vista em grelha"
-          className="seg-btn"
-          style={{ color: view === "grid" ? "var(--brand)" : undefined }}
+          aria-pressed={view === "grid"}
+          className={`seg-btn${view === "grid" ? " is-active" : ""}`}
         >
           <I.Layers size={14} />
         </button>
@@ -305,8 +393,8 @@ function Toolbar({
           type="button"
           onClick={() => onView("list")}
           aria-label="Vista em lista"
-          className="seg-btn"
-          style={{ color: view === "list" ? "var(--brand)" : undefined }}
+          aria-pressed={view === "list"}
+          className={`seg-btn${view === "list" ? " is-active" : ""}`}
         >
           <I.Menu size={14} />
         </button>
@@ -433,7 +521,7 @@ function SortDropdown({
   );
 }
 
-function EmptyState({ query }: { query: string }) {
+function EmptyState({ query, hint }: { query: string; hint: string }) {
   return (
     <div
       style={{
@@ -447,22 +535,7 @@ function EmptyState({ query }: { query: string }) {
         alignItems: "center",
       }}
     >
-      <div
-        style={{
-          width: 56,
-          height: 56,
-          borderRadius: 14,
-          background:
-            "linear-gradient(135deg, var(--brand) 0%, color-mix(in oklab, var(--brand) 72%, var(--lime)) 100%)",
-          color: "#fff",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow:
-            "0 12px 28px color-mix(in oklab, var(--brand) 28%, transparent), 0 1px 0 rgba(255,255,255,.18) inset",
-          marginBottom: 20,
-        }}
-      >
+      <div className="empty-glyph" aria-hidden>
         <I.FileText size={22} />
       </div>
       <div
@@ -488,7 +561,7 @@ function EmptyState({ query }: { query: string }) {
       >
         {query
           ? `Nada encontrado para "${query}". Tenta outro termo ou limpa a pesquisa.`
-          : "Começa uma conversa no editor — o primeiro currículo é construído enquanto falas."}
+          : hint}
       </div>
 
       {!query && (

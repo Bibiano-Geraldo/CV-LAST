@@ -1,13 +1,109 @@
 "use client";
 
-import { useRef, useState, type ComponentProps, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ComponentProps, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import { I, type IconName } from "@/components/icons";
 import { MiniTemplate } from "@/components/templates/MiniTemplate";
 import { Popover } from "@/components/popovers/Popover";
-import type { SavedCV } from "@/lib/data";
+import type { SavedDoc } from "@/lib/data";
 
-export function CVGallery({ items, view }: { items: SavedCV[]; view: "grid" | "list" }) {
+// Editor link is built from the doc kind so a single component serves CVs and letters.
+function editorHref(doc: SavedDoc): ComponentProps<typeof Link>["href"] {
+  return { pathname: "/", query: { [doc.kind === "letter" ? "letter" : "cv"]: doc.id } };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Editable name (double-click → input)
+// ─────────────────────────────────────────────────────────────────────────────
+function EditableName({
+  value,
+  onChange,
+  href,
+  editing,
+  onEditingChange,
+  style,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  href: ComponentProps<typeof Link>["href"];
+  editing: boolean;
+  onEditingChange: (v: boolean) => void;
+  style?: CSSProperties;
+}) {
+  const [draft, setDraft] = useState(value);
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) {
+      setDraft(value);
+      requestAnimationFrame(() => {
+        ref.current?.focus();
+        ref.current?.select();
+      });
+    }
+  }, [editing, value]);
+
+  const commit = () => {
+    const next = draft.trim();
+    if (next && next !== value) onChange(next);
+    onEditingChange(false);
+  };
+
+  if (editing) {
+    return (
+      <input
+        ref={ref}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          e.stopPropagation();
+          if (e.key === "Enter") commit();
+          if (e.key === "Escape") onEditingChange(false);
+        }}
+        onClick={(e) => e.preventDefault()}
+        style={{
+          width: "100%",
+          background: "var(--bg-tint)",
+          border: "1px solid color-mix(in oklab, var(--brand) 35%, var(--line))",
+          outline: "none",
+          borderRadius: 6,
+          padding: "3px 8px",
+          fontSize: style?.fontSize ?? 14,
+          fontWeight: style?.fontWeight ?? 500,
+          color: "var(--ink)",
+          fontFamily: "inherit",
+          letterSpacing: style?.letterSpacing ?? "-.005em",
+          boxShadow: "0 0 0 3px color-mix(in oklab, var(--brand) 14%, transparent)",
+        }}
+      />
+    );
+  }
+
+  return (
+    <Link
+      href={href as never}
+      onDoubleClick={(e) => {
+        e.preventDefault();
+        onEditingChange(true);
+      }}
+      title="Duplo-clique para renomear"
+      style={{
+        display: "block",
+        textDecoration: "none",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        color: "var(--ink)",
+        ...style,
+      }}
+    >
+      {value}
+    </Link>
+  );
+}
+
+export function DocGallery({ items, view }: { items: SavedDoc[]; view: "grid" | "list" }) {
   if (view === "list") {
     return (
       <div
@@ -18,8 +114,8 @@ export function CVGallery({ items, view }: { items: SavedCV[]; view: "grid" | "l
           overflow: "hidden",
         }}
       >
-        {items.map((cv, i) => (
-          <CVRow key={cv.id} cv={cv} isLast={i === items.length - 1} />
+        {items.map((doc, i) => (
+          <DocRow key={doc.id} doc={doc} isLast={i === items.length - 1} />
         ))}
       </div>
     );
@@ -32,8 +128,8 @@ export function CVGallery({ items, view }: { items: SavedCV[]; view: "grid" | "l
         gap: 24,
       }}
     >
-      {items.map((cv) => (
-        <CVCard key={cv.id} cv={cv} />
+      {items.map((doc) => (
+        <DocCard key={doc.id} doc={doc} />
       ))}
     </div>
   );
@@ -42,16 +138,26 @@ export function CVGallery({ items, view }: { items: SavedCV[]; view: "grid" | "l
 // ─────────────────────────────────────────────────────────────────────────────
 // GRID CARD
 // ─────────────────────────────────────────────────────────────────────────────
-function CVCard({ cv }: { cv: SavedCV }) {
+function DocCard({ doc }: { doc: SavedDoc }) {
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(doc.name);
   const active = menuOpen;
+  const href = editorHref(doc);
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    if (editing) return;
+    e.preventDefault();
+    setMenuOpen(true);
+  };
 
   return (
     <article
       className="cv-card-anim"
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onContextMenu={handleContextMenu}
       style={{
         position: "relative",
         background: "var(--bg-elev)",
@@ -71,10 +177,9 @@ function CVCard({ cv }: { cv: SavedCV }) {
         flexDirection: "column",
       }}
     >
-      {/* Top — thumbnail wrapper (clickable as link to editor) */}
       <Link
-        href={{ pathname: "/", query: { cv: cv.id } }}
-        aria-label={`Abrir ${cv.name} no editor`}
+        href={href as never}
+        aria-label={`Abrir ${doc.name} no editor`}
         style={{
           position: "relative",
           aspectRatio: "1 / 1.414",
@@ -100,10 +205,9 @@ function CVCard({ cv }: { cv: SavedCV }) {
             transition: "transform .3s cubic-bezier(.16,1,.3,1)",
           }}
         >
-          <MiniTemplate id={cv.template} accent={cv.accent} />
+          <MiniTemplate id={doc.template} accent={doc.accent} />
         </div>
 
-        {/* Active veil — blurs + tints the thumbnail when 3-dot menu is open */}
         <div
           aria-hidden
           style={{
@@ -118,8 +222,7 @@ function CVCard({ cv }: { cv: SavedCV }) {
           }}
         />
 
-        {/* Star badge — top-left if starred */}
-        {cv.starred && (
+        {doc.starred && (
           <span
             aria-label="Fixado"
             title="Fixado"
@@ -138,12 +241,12 @@ function CVCard({ cv }: { cv: SavedCV }) {
               boxShadow: "0 2px 6px rgba(15,16,12,.10)",
             }}
           >
-            <I.Star size={11} />
+            <I.Star size={12} />
           </span>
         )}
 
-        {/* Pages chip — top-right */}
         <span
+          className="tabular"
           style={{
             position: "absolute",
             top: 12,
@@ -163,11 +266,10 @@ function CVCard({ cv }: { cv: SavedCV }) {
             boxShadow: "0 1px 2px rgba(15,16,12,.04)",
           }}
         >
-          {cv.pages} pág
+          {doc.pages} pág
         </span>
       </Link>
 
-      {/* Meta + actions row */}
       <div
         style={{
           padding: "12px 14px 14px",
@@ -177,22 +279,14 @@ function CVCard({ cv }: { cv: SavedCV }) {
         }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
-          <Link
-            href={{ pathname: "/", query: { cv: cv.id } }}
-            style={{
-              display: "block",
-              fontSize: 14,
-              fontWeight: 500,
-              color: "var(--ink)",
-              textDecoration: "none",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              letterSpacing: "-.005em",
-            }}
-          >
-            {cv.name}
-          </Link>
+          <EditableName
+            value={name}
+            onChange={setName}
+            href={href}
+            editing={editing}
+            onEditingChange={setEditing}
+            style={{ fontSize: 14, fontWeight: 500, letterSpacing: "-.005em" }}
+          />
           <div
             style={{
               fontSize: 11.5,
@@ -204,8 +298,8 @@ function CVCard({ cv }: { cv: SavedCV }) {
               flexWrap: "wrap",
             }}
           >
-            <span style={{ fontFamily: "var(--font-mono)", letterSpacing: ".04em" }}>{cv.updatedAt}</span>
-            {cv.tag && (
+            <span className="tabular" style={{ fontFamily: "var(--font-mono)", letterSpacing: ".04em" }}>{doc.updatedAt}</span>
+            {doc.tag && (
               <span
                 style={{
                   fontSize: 10,
@@ -217,14 +311,18 @@ function CVCard({ cv }: { cv: SavedCV }) {
                   letterSpacing: ".02em",
                 }}
               >
-                {cv.tag}
+                {doc.tag}
               </span>
             )}
           </div>
         </div>
 
-        {/* 3-dot menu */}
-        <CVActions cv={cv} open={menuOpen} onOpenChange={setMenuOpen} />
+        <DocActions
+          doc={doc}
+          open={menuOpen}
+          onOpenChange={setMenuOpen}
+          onRename={() => setEditing(true)}
+        />
       </div>
     </article>
   );
@@ -233,12 +331,23 @@ function CVCard({ cv }: { cv: SavedCV }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // LIST ROW
 // ─────────────────────────────────────────────────────────────────────────────
-function CVRow({ cv, isLast }: { cv: SavedCV; isLast: boolean }) {
+function DocRow({ doc, isLast }: { doc: SavedDoc; isLast: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(doc.name);
+  const href = editorHref(doc);
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    if (editing) return;
+    e.preventDefault();
+    setMenuOpen(true);
+  };
+
   return (
     <div
       className="cv-row"
       data-active={menuOpen ? "true" : "false"}
+      onContextMenu={handleContextMenu}
       style={{
         display: "grid",
         gridTemplateColumns: "auto 1fr auto auto auto",
@@ -246,20 +355,11 @@ function CVRow({ cv, isLast }: { cv: SavedCV; isLast: boolean }) {
         alignItems: "center",
         padding: "12px 16px",
         borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
-        background: menuOpen ? "var(--bg-tint)" : "transparent",
-        transition: "background .14s ease",
-      }}
-      onMouseEnter={(e) => {
-        if (!menuOpen) e.currentTarget.style.background = "var(--bg-tint)";
-      }}
-      onMouseLeave={(e) => {
-        if (!menuOpen) e.currentTarget.style.background = "transparent";
       }}
     >
-      {/* Thumbnail */}
       <Link
-        href={{ pathname: "/", query: { cv: cv.id } }}
-        aria-label={`Abrir ${cv.name}`}
+        href={href as never}
+        aria-label={`Abrir ${doc.name}`}
         style={{
           display: "block",
           width: 44,
@@ -274,11 +374,10 @@ function CVRow({ cv, isLast }: { cv: SavedCV; isLast: boolean }) {
         }}
       >
         <div style={{ width: "100%", height: "100%", display: "flex" }}>
-          <MiniTemplate id={cv.template} accent={cv.accent} />
+          <MiniTemplate id={doc.template} accent={doc.accent} />
         </div>
       </Link>
 
-      {/* Name + meta */}
       <div style={{ minWidth: 0 }}>
         <div
           style={{
@@ -288,21 +387,17 @@ function CVRow({ cv, isLast }: { cv: SavedCV; isLast: boolean }) {
             minWidth: 0,
           }}
         >
-          {cv.starred && <I.Star size={12} style={{ color: "var(--brand)", flexShrink: 0 }} />}
-          <Link
-            href={{ pathname: "/", query: { cv: cv.id } }}
-            style={{
-              fontSize: 14,
-              fontWeight: 500,
-              color: "var(--ink)",
-              textDecoration: "none",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {cv.name}
-          </Link>
+          {doc.starred && <I.Star size={12} style={{ color: "var(--brand)", flexShrink: 0 }} />}
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <EditableName
+              value={name}
+              onChange={setName}
+              href={href}
+              editing={editing}
+              onEditingChange={setEditing}
+              style={{ fontSize: 14, fontWeight: 500 }}
+            />
+          </div>
         </div>
         <div
           style={{
@@ -315,8 +410,8 @@ function CVRow({ cv, isLast }: { cv: SavedCV; isLast: boolean }) {
             flexWrap: "wrap",
           }}
         >
-          <span style={{ fontFamily: "var(--font-mono)", letterSpacing: ".04em" }}>{cv.updatedAt}</span>
-          {cv.tag && (
+          <span style={{ fontFamily: "var(--font-mono)", letterSpacing: ".04em" }}>{doc.updatedAt}</span>
+          {doc.tag && (
             <span
               style={{
                 fontSize: 10,
@@ -328,14 +423,14 @@ function CVRow({ cv, isLast }: { cv: SavedCV; isLast: boolean }) {
                 letterSpacing: ".02em",
               }}
             >
-              {cv.tag}
+              {doc.tag}
             </span>
           )}
         </div>
       </div>
 
-      {/* Pages */}
       <span
+        className="tabular"
         style={{
           fontFamily: "var(--font-mono)",
           fontSize: 10.5,
@@ -345,10 +440,15 @@ function CVRow({ cv, isLast }: { cv: SavedCV; isLast: boolean }) {
           whiteSpace: "nowrap",
         }}
       >
-        {cv.pages} pág
+        {doc.pages} pág
       </span>
 
-      <CVActions cv={cv} open={menuOpen} onOpenChange={setMenuOpen} />
+      <DocActions
+        doc={doc}
+        open={menuOpen}
+        onOpenChange={setMenuOpen}
+        onRename={() => setEditing(true)}
+      />
 
       <span aria-hidden className="cv-row-chevron" style={{ color: "var(--ink-4)", display: "inline-flex" }}>
         <I.ChevronRight size={14} />
@@ -360,14 +460,16 @@ function CVRow({ cv, isLast }: { cv: SavedCV; isLast: boolean }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // 3-DOT MENU
 // ─────────────────────────────────────────────────────────────────────────────
-function CVActions({
-  cv,
+function DocActions({
+  doc,
   open,
   onOpenChange,
+  onRename,
 }: {
-  cv: SavedCV;
+  doc: SavedDoc;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  onRename?: () => void;
 }) {
   const btnRef = useRef<HTMLButtonElement>(null);
   const setOpen = onOpenChange;
@@ -378,7 +480,7 @@ function CVActions({
         ref={btnRef}
         type="button"
         className="icon-btn"
-        aria-label={`Mais opções para ${cv.name}`}
+        aria-label={`Mais opções para ${doc.name}`}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={(e) => {
@@ -399,15 +501,22 @@ function CVActions({
 
       <Popover open={open} anchor={btnRef} onClose={() => setOpen(false)} side="bottom" align="end" width={232} offset={6} bottomSheetOnMobile>
         <div style={{ padding: 6 }}>
-          <MenuItem icon="Edit" label="Abrir no editor" href={{ pathname: "/", query: { cv: cv.id } }} onClose={() => setOpen(false)} />
-          <MenuItem icon="Star" label={cv.starred ? "Remover dos fixados" : "Fixar"} onClick={() => setOpen(false)} />
+          <MenuItem icon="Edit" label="Abrir no editor" href={editorHref(doc)} onClose={() => setOpen(false)} />
+          <MenuItem icon="Star" label={doc.starred ? "Remover dos fixados" : "Fixar"} onClick={() => setOpen(false)} />
         </div>
 
         <div style={{ padding: 6, borderTop: "1px solid var(--line-soft)" }}>
           <MenuItem icon="Target" label="Adaptar a uma vaga" onClick={() => setOpen(false)} />
           <MenuItem icon="Languages" label="Traduzir" onClick={() => setOpen(false)} trailing={<I.ChevronRight size={12} style={{ color: "var(--ink-4)" }} />} />
           <MenuItem icon="Copy" label="Duplicar" onClick={() => setOpen(false)} />
-          <MenuItem icon="Pencil" label="Renomear" onClick={() => setOpen(false)} />
+          <MenuItem
+            icon="Pencil"
+            label="Renomear"
+            onClick={() => {
+              setOpen(false);
+              onRename?.();
+            }}
+          />
         </div>
 
         <div style={{ padding: 6, borderTop: "1px solid var(--line-soft)" }}>
@@ -423,9 +532,6 @@ function CVActions({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Single menu item (link or button)
-// ─────────────────────────────────────────────────────────────────────────────
 function MenuItem({
   icon,
   label,

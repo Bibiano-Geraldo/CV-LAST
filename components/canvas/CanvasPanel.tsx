@@ -63,19 +63,31 @@ export function CanvasPanel(props: CanvasPanelProps) {
     return () => ro.disconnect();
   }, [template, isEmpty, fontSize, lineHeight, density]);
 
+  const lastFitRef = useRef(0);
   useEffect(() => {
     if (!fitMode || !scrollRef.current) return;
     const el = scrollRef.current;
+    let raf = 0;
     const recalc = () => {
       const w = el.clientWidth;
       const pad = w < 600 ? 24 : 48;
-      const fit = Math.min(1.2, Math.max(0.28, (w - pad) / 794));
-      onZoom(+fit.toFixed(3));
+      const raw = Math.min(1.2, Math.max(0.28, (w - pad) / 794));
+      const fit = +raw.toFixed(2);
+      if (Math.abs(fit - lastFitRef.current) < 0.005) return;
+      lastFitRef.current = fit;
+      onZoom(fit);
     };
-    recalc();
-    const ro = new ResizeObserver(recalc);
+    const schedule = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(recalc);
+    };
+    schedule();
+    const ro = new ResizeObserver(schedule);
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      cancelAnimationFrame(raf);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fitMode]);
 
@@ -89,7 +101,8 @@ export function CanvasPanel(props: CanvasPanelProps) {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    transition: "transform .2s cubic-bezier(.2,.9,.3,1)",
+    transition: fitMode ? "none" : "transform .2s cubic-bezier(.2,.9,.3,1)",
+    willChange: "transform",
     "--cv-inv-zoom": 1 / Math.max(zoom, 0.01),
   } as CSSProperties;
 
@@ -127,7 +140,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
               <I.ChevronDown size={11} style={{ color: "var(--ink-3)", flexShrink: 0, marginLeft: -2 }} />
             </button>
             <div className="seg-div" />
-            <button className="seg-btn" onClick={onOpenCustomize} title="Personalizar" aria-label="Personalizar">
+            <button data-customize-trigger className="seg-btn" onClick={onOpenCustomize} title="Personalizar" aria-label="Personalizar">
               <I.Palette size={13} />
               <span className="lbl-md">Personalizar</span>
             </button>
@@ -149,7 +162,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
             </button>
             <button className="seg-btn seg-zoom" onClick={() => onFitMode(true)} title="Ajustar à largura">
               <span style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, letterSpacing: ".02em", color: fitMode ? "var(--brand)" : "var(--ink-2)" }}>
-                {fitMode ? "Fit" : `${Math.round(zoom * 100)}%`}
+                {fitMode ? "Auto" : `${Math.round(zoom * 100)}%`}
               </span>
             </button>
             <button
@@ -192,6 +205,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
         className="canvas-scroll"
         style={{
           flex: 1, overflow: "auto",
+          scrollbarGutter: "stable",
           padding: "24px 16px 60px",
           display: "flex", flexDirection: "column", alignItems: "center", gap: 0,
           background:

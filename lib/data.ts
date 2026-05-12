@@ -1,8 +1,11 @@
 import type { CV, TemplateId } from "@/types/cv";
 import type { Message, RecentChat } from "@/types/chat";
 
-export type SavedCV = {
+export type DocKind = "cv" | "letter";
+
+export type SavedDoc = {
   id: string;
+  kind: DocKind;
   name: string;
   template: TemplateId;
   accent: string;
@@ -12,13 +15,21 @@ export type SavedCV = {
   tag?: string;
 };
 
-export const SAMPLE_CVS: SavedCV[] = [
-  { id: "cv1", name: "CV — Lead Designer @ Linear",   template: "aurora",    accent: "#1A6D75", updatedAt: "Há 2 minutos",   pages: 2, starred: true,  tag: "Adaptado · Linear" },
-  { id: "cv2", name: "CV principal · Português",       template: "editorial", accent: "#1A6D75", updatedAt: "Ontem",           pages: 2, starred: true },
-  { id: "cv3", name: "CV — English version",           template: "mono",      accent: "#3B4A6B", updatedAt: "Há 3 dias",       pages: 2, tag: "Traduzido · EN" },
-  { id: "cv4", name: "Adaptação Glovo PM",             template: "bold",      accent: "#7A4F22", updatedAt: "Há 4 dias",       pages: 2 },
-  { id: "cv5", name: "Versão executiva (1 página)",    template: "mono",      accent: "#1a1816", updatedAt: "Semana passada",  pages: 1 },
-  { id: "cv6", name: "CV académico — Fulbright",       template: "editorial", accent: "#9A3B3B", updatedAt: "Há 12 dias",      pages: 3 },
+export type SavedCV = SavedDoc;
+
+export const SAMPLE_CVS: SavedDoc[] = [
+  { id: "cv1", kind: "cv", name: "CV — Lead Designer @ Linear",   template: "aurora",    accent: "#1A6D75", updatedAt: "Há 2 minutos",   pages: 2, starred: true,  tag: "Adaptado · Linear" },
+  { id: "cv2", kind: "cv", name: "CV principal · Português",       template: "editorial", accent: "#1A6D75", updatedAt: "Ontem",           pages: 2, starred: true },
+  { id: "cv3", kind: "cv", name: "CV — English version",           template: "mono",      accent: "#3B4A6B", updatedAt: "Há 3 dias",       pages: 2, tag: "Traduzido · EN" },
+  { id: "cv4", kind: "cv", name: "Adaptação Glovo PM",             template: "bold",      accent: "#7A4F22", updatedAt: "Há 4 dias",       pages: 2 },
+  { id: "cv5", kind: "cv", name: "Versão executiva (1 página)",    template: "mono",      accent: "#1a1816", updatedAt: "Semana passada",  pages: 1 },
+  { id: "cv6", kind: "cv", name: "CV académico — Fulbright",       template: "editorial", accent: "#9A3B3B", updatedAt: "Há 12 dias",      pages: 3 },
+];
+
+export const SAMPLE_LETTERS: SavedDoc[] = [
+  { id: "lt1", kind: "letter", name: "Carta — Vercel Design Engineer", template: "editorial", accent: "#1A6D75", updatedAt: "Ontem",        pages: 1, starred: true, tag: "Adaptada · Vercel" },
+  { id: "lt2", kind: "letter", name: "Carta motivação MIT Media Lab",   template: "mono",      accent: "#3B4A6B", updatedAt: "Há 18 dias",   pages: 1, tag: "Académica" },
+  { id: "lt3", kind: "letter", name: "Carta — Linear (Lead Designer)",  template: "aurora",    accent: "#1A6D75", updatedAt: "Há 4 dias",    pages: 1 },
 ];
 
 export const SAMPLE_CV: CV = {

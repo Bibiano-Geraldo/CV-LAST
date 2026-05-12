@@ -74,6 +74,15 @@ export function AppShell() {
     setSidebarOpen(false);
   }, []);
 
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFullscreen(false);
+    };
+    document.addEventListener("keydown", onEsc);
+    return () => document.removeEventListener("keydown", onEsc);
+  }, [fullscreen]);
+
   const onNewChat = () => {
     setChatState("empty");
     setThread([]);
@@ -139,8 +148,8 @@ export function AppShell() {
 
   return (
     <div className={cls}>
-      {vp.isMobile && sidebarOpen && <div className="sb-backdrop" onClick={() => setSidebarOpen(false)} />}
-      {(showSidebar || sidebarOpen) && (
+      {vp.isMobile && sidebarOpen && !fullscreen && <div className="sb-backdrop" onClick={() => setSidebarOpen(false)} />}
+      {!fullscreen && (showSidebar || sidebarOpen) && (
         <Sidebar
           open={sidebarOpen}
           onToggle={() => setSidebarOpen((v) => !v)}

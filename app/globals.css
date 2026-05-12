@@ -368,6 +368,7 @@ input, textarea { font-size: 16px; }
   background: var(--bg);
 }
 .app.sb-open { grid-template-columns: 264px 1fr; }
+.app.is-fullscreen { grid-template-columns: 1fr; }
 .app.is-fullscreen .chat-panel { display: none; }
 .app.is-fullscreen .main { grid-template-columns: 1fr; }
 .main {
@@ -432,6 +433,8 @@ input, textarea { font-size: 16px; }
 }
 .app.is-compact .main { grid-template-columns: 1fr 1.1fr; }
 .app.is-fullscreen .chat-panel { display: none !important; }
+.app.is-fullscreen .main,
+.app.is-fullscreen.is-compact .main { grid-template-columns: 1fr !important; }
 
 .empty-hero h1 { font-size: clamp(22px, 5.2vw, 32px) !important; line-height: 1.08; }
 .empty-hero p  { font-size: clamp(13px, 3.4vw, 14px) !important; }
@@ -699,6 +702,36 @@ input, textarea { font-size: 16px; }
   background: var(--bg-tint);
   box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--brand) 35%, transparent);
 }
+.nav-item.is-active {
+  background: color-mix(in oklab, var(--brand) 10%, var(--bg-tint));
+  color: var(--ink);
+  box-shadow: inset 2px 0 0 var(--brand);
+}
+.nav-item.is-active .nav-icon { color: var(--brand); }
+.nav-item.is-active:hover { background: color-mix(in oklab, var(--brand) 14%, var(--bg-tint)); transform: none; }
+.nav-item.is-active .nav-count {
+  background: color-mix(in oklab, var(--brand) 14%, transparent);
+  color: var(--brand-ink);
+}
+
+/* Collapsed sidebar nav icon — active state must trump .icon-btn:hover */
+.icon-btn.nav-active,
+.icon-btn.nav-active:hover {
+  background: var(--brand-soft);
+  color: var(--brand);
+  transform: none;
+}
+.icon-btn.nav-active::after {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--brand);
+}
+.icon-btn.nav-active { position: relative; }
 
 .chat-item {
   display: flex; align-items: center; gap: 9px;
@@ -833,6 +866,121 @@ input, textarea { font-size: 16px; }
 }
 
 .icon-btn, .btn, .seg-btn { cursor: pointer; }
+
+/* ─── Tabular numerals — for counts, dates, badges where alignment matters ── */
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* ─── Inputs & anchors get the same focus ring system as buttons ─────────── */
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+a:focus-visible {
+  outline: none;
+  border-radius: 8px;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 22%, transparent);
+}
+
+/* ─── Gallery search input wrapper — visible focus-within state ─────────── */
+.gallery-search {
+  transition:
+    border-color .15s ease,
+    box-shadow .18s cubic-bezier(.16,1,.3,1);
+}
+.gallery-search:focus-within {
+  border-color: color-mix(in oklab, var(--brand) 45%, var(--line)) !important;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 14%, transparent);
+}
+.gallery-search:focus-within > svg:first-child { color: var(--brand) !important; }
+
+/* ─── Active state for view toggle (grid/list) — bg + color, not just color ── */
+.seg-btn.is-active {
+  background: var(--brand-soft);
+  color: var(--brand);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--brand) 18%, transparent);
+}
+.seg-btn.is-active:hover {
+  background: color-mix(in oklab, var(--brand-soft) 80%, var(--brand) 8%);
+  color: var(--brand);
+}
+
+/* ─── Card focus ring — kicks in on internal link/button focus ─────────── */
+.cv-card-anim:focus-within {
+  border-color: color-mix(in oklab, var(--brand) 40%, var(--line)) !important;
+  box-shadow:
+    0 0 0 3px color-mix(in oklab, var(--brand) 16%, transparent),
+    0 8px 22px color-mix(in oklab, var(--brand) 10%, transparent) !important;
+}
+.cv-card-anim a:focus-visible,
+.cv-card-anim button:focus-visible { box-shadow: none; }
+
+/* ─── List row hover via CSS (lighter than tint, smoother transition) ───── */
+.cv-row { transition: background .16s ease, box-shadow .18s ease; }
+.cv-row:hover:not([data-active="true"]) {
+  background: color-mix(in oklab, var(--bg-tint) 60%, transparent);
+}
+.cv-row[data-active="true"] {
+  background: var(--bg-tint);
+  box-shadow: inset 2px 0 0 var(--brand);
+}
+
+/* ─── Top bar (gallery shell) — back link + tabs ─────────────────────── */
+/* Layout/box styles are inline on the elements; this layer adds motion + states. */
+.topbar-back {
+  transition:
+    background .14s ease,
+    color .14s ease,
+    border-color .14s ease,
+    transform .18s cubic-bezier(.16,1,.3,1) !important;
+}
+.topbar-back svg { transition: transform .25s cubic-bezier(.16,1,.3,1), color .14s ease; }
+.topbar-back:hover {
+  background: var(--bg-elev) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+.topbar-back:hover svg { transform: translateX(-2px); color: var(--brand); }
+.topbar-back:active { transform: scale(.98); }
+.topbar-back:focus-visible {
+  outline: none;
+  background: var(--bg-elev) !important;
+  border-color: color-mix(in oklab, var(--brand) 35%, var(--line)) !important;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 16%, transparent);
+}
+
+.topbar-tab { transition: background .14s ease, color .14s ease; }
+.topbar-tab:not(.is-active):hover {
+  background: var(--bg-tint) !important;
+  color: var(--ink) !important;
+}
+.topbar-tab.is-active:hover {
+  background: color-mix(in oklab, var(--brand-soft) 82%, var(--brand) 8%) !important;
+}
+.topbar-tab:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 18%, transparent);
+}
+
+@media (max-width: 640px) {
+  .topbar-back > span { display: none; }
+  .topbar-back { padding: 0 10px !important; }
+  .topbar-tabs { overflow-x: auto; max-width: 100%; }
+}
+
+/* ─── Empty state glyph — editorial circle replacing the lone gradient ──── */
+.empty-glyph {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 22px;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--brand) 16%, transparent),
+    0 8px 22px color-mix(in oklab, var(--brand) 14%, transparent);
+}
 
 .caret-pop {
   position: fixed;

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Children, type ReactNode, type RefObject } from "react";
 import { I, type IconName } from "@/components/icons";
 import type { RecentChat } from "@/types/chat";
@@ -26,6 +27,9 @@ export function Sidebar({
   onSelectChat,
   onNewChat,
 }: SidebarProps) {
+  const pathname = usePathname() ?? "";
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+
   if (!open) {
     return (
       <aside
@@ -49,15 +53,9 @@ export function Sidebar({
         >
           <I.Plus size={17} />
         </button>
-        <Link href="/curriculos" className="icon-btn" title="Os meus currículos" style={{ width: 36, height: 36, textDecoration: "none" }}>
-          <I.FileText size={16} />
-        </Link>
-        <button className="icon-btn" title="Cartas de apresentação" style={{ width: 36, height: 36 }}>
-          <I.Mail size={16} />
-        </button>
-        <Link href="/templates" className="icon-btn" title="Templates" style={{ width: 36, height: 36, textDecoration: "none" }}>
-          <I.Layers size={16} />
-        </Link>
+        <CollapsedNavLink href="/curriculos" title="Os meus currículos" icon="FileText" active={isActive("/curriculos")} />
+        <CollapsedNavLink href="/cartas" title="Cartas de apresentação" icon="Mail" active={isActive("/cartas")} />
+        <CollapsedNavLink href="/templates" title="Templates" icon="Layers" active={isActive("/templates")} />
 
         <div style={{ flex: 1 }} />
 
@@ -121,9 +119,9 @@ export function Sidebar({
       </div>
 
       <div style={{ padding: "0 8px 8px" }}>
-        <NavItem icon="FileText" label="Os meus currículos" count={6} href="/curriculos" />
-        <NavItem icon="Mail" label="Cartas de apresentação" count={3} />
-        <NavItem icon="Layers" label="Templates" count={4} href="/templates" />
+        <NavItem icon="FileText" label="Os meus currículos" count={6} href="/curriculos" active={isActive("/curriculos")} />
+        <NavItem icon="Mail" label="Cartas de apresentação" count={3} href="/cartas" active={isActive("/cartas")} />
+        <NavItem icon="Layers" label="Templates" count={4} href="/templates" active={isActive("/templates")} />
       </div>
 
       <div style={{ height: 1, background: "var(--line-soft)", margin: "0 14px 8px" }} />
@@ -167,25 +165,57 @@ export function Sidebar({
   );
 }
 
-function NavItem({ icon, label, count, href }: { icon: IconName; label: string; count?: number; href?: string }) {
+function NavItem({ icon, label, count, href, active }: { icon: IconName; label: string; count?: number; href?: string; active?: boolean }) {
   const Ic = I[icon];
+  const className = `nav-item${active ? " is-active" : ""}`;
   const content = (
     <>
       <Ic size={14} className="nav-icon" />
-      <span style={{ flex: 1, fontSize: 12.5, fontWeight: 450 }}>{label}</span>
+      <span style={{ flex: 1, fontSize: 12.5, fontWeight: active ? 550 : 450 }}>{label}</span>
       {count != null && (
-        <span style={{ fontSize: 10.5, color: "var(--ink-4)", fontFamily: "var(--font-mono)", letterSpacing: ".02em", background: "var(--bg-tint)", padding: "2px 6px", borderRadius: 99, lineHeight: 1 }}>{count}</span>
+        <span
+          className="nav-count tabular"
+          style={{
+            fontSize: 10.5,
+            color: "var(--ink-4)",
+            fontFamily: "var(--font-mono)",
+            letterSpacing: ".02em",
+            background: "var(--bg-tint)",
+            padding: "2px 6px",
+            borderRadius: 99,
+            lineHeight: 1,
+            transition: "background .14s ease, color .14s ease",
+          }}
+        >
+          {count}
+        </span>
       )}
     </>
   );
   if (href) {
     return (
-      <Link href={href} className="nav-item" style={{ textDecoration: "none" }}>
+      <Link href={href} className={className} aria-current={active ? "page" : undefined} style={{ textDecoration: "none" }}>
         {content}
       </Link>
     );
   }
-  return <button className="nav-item">{content}</button>;
+  return <button className={className}>{content}</button>;
+}
+
+function CollapsedNavLink({ href, title, icon, active }: { href: string; title: string; icon: IconName; active: boolean }) {
+  const Ic = I[icon];
+  return (
+    <Link
+      href={href as never}
+      title={title}
+      aria-label={title}
+      aria-current={active ? "page" : undefined}
+      className={`icon-btn${active ? " nav-active" : ""}`}
+      style={{ width: 36, height: 36, textDecoration: "none" }}
+    >
+      <Ic size={16} />
+    </Link>
+  );
 }
 
 function ChatGroup({ title, children }: { title: string; children: ReactNode }) {
