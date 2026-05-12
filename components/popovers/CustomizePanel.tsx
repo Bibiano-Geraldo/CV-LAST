@@ -200,7 +200,7 @@ export function CustomizePanel({
           }}
         />
         <div
-          className="caret-pop"
+          className="caret-pop safe-pad-bottom"
           role="dialog"
           aria-label="Personalizar modelo"
           style={{
@@ -212,7 +212,6 @@ export function CustomizePanel({
             display: "flex", flexDirection: "column",
             overflow: "hidden",
             zIndex: 70,
-            paddingBottom: "env(safe-area-inset-bottom)",
             animation: "slideUp .22s cubic-bezier(.2,.9,.3,1)",
           }}
         >

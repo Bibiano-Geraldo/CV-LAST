@@ -97,7 +97,7 @@ export function ChatPanel({
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
           {onOpenMenu && (
-            <button className="icon-btn" onClick={onOpenMenu} aria-label="Abrir menu" style={{ width: 36, height: 36, flexShrink: 0 }}>
+            <button className="icon-btn mobile-menu-btn" onClick={onOpenMenu} aria-label="Abrir menu" style={{ width: 36, height: 36, flexShrink: 0 }}>
               <I.Menu size={18} />
             </button>
           )}

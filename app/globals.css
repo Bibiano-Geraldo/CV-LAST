@@ -31,6 +31,85 @@
   --font-display: "Instrument Serif", "Fraunces", Georgia, serif;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   SAFE-AREA SYSTEM — sistema central de safe-area + teclado virtual.
+
+   Tokens:
+     --sat / --sar / --sab / --sal   → safe-area-inset-* (notch, home indicator,
+                                       barra de gestos Android, ecrãs curvos).
+                                       Activados quando o viewport meta tem
+                                       `viewportFit:"cover"`. Valor 0px em
+                                       desktop e dispositivos sem inset.
+     --kb-inset                       → altura do teclado virtual, actualizada
+                                       pelo hook useKeyboardInset (VisualViewport
+                                       API). 0px quando o teclado está fechado.
+     --vh                             → 100dvh - --kb-inset (altura útil real).
+
+   Utilities (.safe-*):
+     .safe-pad         padding em todos os lados
+     .safe-pad-x       padding horizontal (esq + dir)
+     .safe-pad-y       padding vertical (topo + fundo)
+     .safe-pad-top     | .safe-pad-bottom | .safe-pad-left | .safe-pad-right
+     .safe-pt-N        padding-top: calc(Npx + --sat). N ∈ {0,4,8,12,16,20,24}.
+                       Análogos: .safe-pb-N | .safe-pl-N | .safe-pr-N
+     .safe-h           height: var(--vh) — encolhe com teclado e respeita inset
+     .safe-min-h       min-height: var(--vh)
+
+   Convenção: NUNCA escrever `env(safe-area-inset-*)` directamente em
+   componentes. Usar sempre uma destas utilities ou a variável `--sa{t|r|b|l}`.
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --kb-inset: 0px;
+  --vh: calc(100dvh - var(--kb-inset));
+}
+
+.safe-pad        { padding: var(--sat) var(--sar) var(--sab) var(--sal); }
+.safe-pad-x      { padding-left: var(--sal); padding-right: var(--sar); }
+.safe-pad-y      { padding-top: var(--sat); padding-bottom: var(--sab); }
+.safe-pad-top    { padding-top: var(--sat); }
+.safe-pad-bottom { padding-bottom: var(--sab); }
+.safe-pad-left   { padding-left: var(--sal); }
+.safe-pad-right  { padding-right: var(--sar); }
+
+.safe-pt-0  { padding-top: var(--sat); }
+.safe-pt-4  { padding-top: calc(4px  + var(--sat)); }
+.safe-pt-8  { padding-top: calc(8px  + var(--sat)); }
+.safe-pt-12 { padding-top: calc(12px + var(--sat)); }
+.safe-pt-16 { padding-top: calc(16px + var(--sat)); }
+.safe-pt-20 { padding-top: calc(20px + var(--sat)); }
+.safe-pt-24 { padding-top: calc(24px + var(--sat)); }
+
+.safe-pb-0  { padding-bottom: var(--sab); }
+.safe-pb-4  { padding-bottom: calc(4px  + var(--sab)); }
+.safe-pb-8  { padding-bottom: calc(8px  + var(--sab)); }
+.safe-pb-12 { padding-bottom: calc(12px + var(--sab)); }
+.safe-pb-14 { padding-bottom: calc(14px + var(--sab)); }
+.safe-pb-16 { padding-bottom: calc(16px + var(--sab)); }
+.safe-pb-20 { padding-bottom: calc(20px + var(--sab)); }
+.safe-pb-24 { padding-bottom: calc(24px + var(--sab)); }
+.safe-pb-40 { padding-bottom: calc(40px + var(--sab)); }
+
+.safe-pl-0  { padding-left: var(--sal); }
+.safe-pl-8  { padding-left: calc(8px  + var(--sal)); }
+.safe-pl-10 { padding-left: calc(10px + var(--sal)); }
+.safe-pl-12 { padding-left: calc(12px + var(--sal)); }
+.safe-pl-14 { padding-left: calc(14px + var(--sal)); }
+.safe-pl-16 { padding-left: calc(16px + var(--sal)); }
+
+.safe-pr-0  { padding-right: var(--sar); }
+.safe-pr-8  { padding-right: calc(8px  + var(--sar)); }
+.safe-pr-10 { padding-right: calc(10px + var(--sar)); }
+.safe-pr-12 { padding-right: calc(12px + var(--sar)); }
+.safe-pr-14 { padding-right: calc(14px + var(--sar)); }
+.safe-pr-16 { padding-right: calc(16px + var(--sar)); }
+
+.safe-h     { height: var(--vh); }
+.safe-min-h { min-height: var(--vh); }
+
 /* Re-expor como CSS variables clássicas para o resto do design system */
 :root {
   --brand: var(--color-brand);
@@ -362,11 +441,20 @@ input, textarea { font-size: 16px; }
 .app {
   display: grid;
   grid-template-columns: auto 1fr;
+  /* --vh já inclui o ajuste de teclado virtual (--kb-inset). Tokens centrais
+     em :root. Os componentes filhos consomem .safe-* utilities — nunca
+     repetir env(safe-area-inset-*) directamente. */
   height: 100vh;
-  height: 100dvh;
+  height: var(--vh);
   position: relative;
   background: var(--bg);
+  transition: height .18s ease;
 }
+
+/* Enquanto o teclado abre, evitar scroll-chaining no body e garantir que
+   o input tem espaço para se manter visível. */
+html.kb-open,
+html.kb-open body { overscroll-behavior: contain; }
 .app.sb-open { grid-template-columns: 264px 1fr; }
 .app.is-fullscreen { grid-template-columns: 1fr; }
 .app.is-fullscreen .chat-panel { display: none; }
@@ -382,6 +470,15 @@ input, textarea { font-size: 16px; }
   overflow: hidden;
 }
 .main > section { min-height: 0; min-width: 0; overflow: hidden; }
+
+/* CSS-only mobile fallback — aplica-se antes do JS classificar como .is-mobile,
+   evitando flash do layout desktop em telemóveis enquanto o React hidrata. */
+@media (max-width: 899px) {
+  .app:not(.is-fullscreen) { grid-template-columns: 1fr !important; }
+  .app:not(.is-mobile):not(.is-fullscreen) > aside { display: none !important; }
+  .app:not(.is-mobile):not(.is-fullscreen) .main { grid-template-columns: 1fr !important; }
+  .app:not(.is-mobile):not(.is-fullscreen) .main > section + section { display: none !important; }
+}
 
 .app.is-mobile { grid-template-columns: 1fr; }
 .app.is-mobile .main { grid-template-columns: 1fr; position: relative; }
@@ -403,8 +500,9 @@ input, textarea { font-size: 16px; }
   z-index: 60 !important;
   box-shadow: 0 20px 40px rgba(15, 16, 12, .18);
   max-width: min(280px, 86vw);
-  padding-left: env(safe-area-inset-left);
-  padding-bottom: env(safe-area-inset-bottom);
+  /* Padding-left para notch em landscape via token central. Top/bottom
+     são geridos pelos próprios elementos internos (.safe-pt-12 / .safe-pb-12). */
+  padding-left: var(--sal);
 }
 .sb-backdrop {
   position: fixed; inset: 0;
@@ -415,6 +513,7 @@ input, textarea { font-size: 16px; }
   backdrop-filter: blur(2px);
 }
 .preview-btn { display: none; }
+@media (max-width: 899px) { .preview-btn { display: flex; } }
 
 @media (max-width: 900px) {
   .lbl-md { display: none; }
@@ -443,11 +542,12 @@ input, textarea { font-size: 16px; }
 @media (max-width: 380px) { .quick-prompts { grid-template-columns: 1fr !important; } }
 
 @media (max-width: 900px) {
-  .composer-wrap { padding: 8px 12px calc(14px + env(safe-area-inset-bottom)) !important; }
-  .chat-scroll-pad { padding: 18px 14px 8px !important; }
-  .chat-header { padding: 0 12px !important; gap: 8px; }
-  .canvas-header { padding: 0 10px !important; gap: 6px !important; }
-  .canvas-scroll { padding: 14px 8px 40px !important; }
+  /* Safe-area via tokens centrais. Consome --sat/--sar/--sab/--sal de :root. */
+  .composer-wrap   { padding: 8px calc(12px + var(--sar)) calc(14px + var(--sab)) calc(12px + var(--sal)) !important; }
+  .chat-scroll-pad { padding: 18px calc(14px + var(--sar)) 8px calc(14px + var(--sal)) !important; }
+  .chat-header     { padding: var(--sat) calc(12px + var(--sar)) 0 calc(12px + var(--sal)) !important; gap: 8px; height: calc(56px + var(--sat)) !important; }
+  .canvas-header   { padding: var(--sat) calc(10px + var(--sar)) 0 calc(10px + var(--sal)) !important; gap: 6px !important; height: calc(56px + var(--sat)) !important; }
+  .canvas-scroll   { padding: 14px calc(8px + var(--sar)) calc(40px + var(--sab)) calc(8px + var(--sal)) !important; }
 }
 @media (max-width: 900px) and (orientation: landscape) {
   .empty-hero { padding: 14px 16px !important; gap: 14px !important; }

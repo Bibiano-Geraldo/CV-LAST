@@ -64,8 +64,16 @@ export function Composer({
           value={draft}
           onChange={(e) => onDraft(e.target.value)}
           onKeyDown={onKey}
+          onFocus={(e) => {
+            // Em iOS Safari, o teclado pode tapar o input mesmo com layout
+            // ajustado. Damos um nudge para garantir visibilidade.
+            const el = e.currentTarget;
+            window.setTimeout(() => {
+              el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+            }, 250);
+          }}
           placeholder={empty ? "Conta o que queres criar… (ex: «adapta o meu CV à vaga X»)" : "Escreve uma mensagem…"}
-          style={{ padding: "14px 16px 4px", fontSize: 14, fontFamily: "inherit", width: "100%" }}
+          style={{ padding: "14px 16px 4px", fontFamily: "inherit", width: "100%" }}
         />
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 8px 8px" }}>

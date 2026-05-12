@@ -33,12 +33,14 @@ export function Sidebar({
   if (!open) {
     return (
       <aside
+        className="safe-pt-12 safe-pb-12"
         style={{
-          width: 56, height: "100vh", flexShrink: 0,
+          width: 56, height: "var(--vh)", flexShrink: 0,
           borderRight: "1px solid var(--line)",
           background: "var(--bg)",
           display: "flex", flexDirection: "column",
-          alignItems: "center", padding: "12px 8px", gap: 6,
+          alignItems: "center", gap: 6,
+          paddingLeft: 8, paddingRight: 8,
           position: "relative", zIndex: 5,
         }}
       >
@@ -78,8 +80,9 @@ export function Sidebar({
 
   return (
     <aside
+      className="safe-pad-top"
       style={{
-        width: 264, height: "100vh", flexShrink: 0,
+        width: 264, height: "var(--vh)", flexShrink: 0,
         borderRight: "1px solid var(--line)",
         background: "var(--bg)",
         display: "flex", flexDirection: "column",
@@ -139,7 +142,7 @@ export function Sidebar({
         </ChatGroup>
       </div>
 
-      <div style={{ padding: "10px 12px 12px", display: "flex", alignItems: "center", gap: 10, borderTop: "1px solid var(--line-soft)" }}>
+      <div className="safe-pb-12" style={{ padding: "10px 12px", display: "flex", alignItems: "center", gap: 10, borderTop: "1px solid var(--line-soft)" }}>
         <button
           ref={avatarRef}
           onClick={onAvatarClick}

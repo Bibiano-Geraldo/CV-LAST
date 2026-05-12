@@ -128,7 +128,7 @@ export function Popover({
         />
         <div
           ref={ref}
-          className="caret-pop"
+          className="caret-pop safe-pad-bottom"
           style={{
             position: "fixed",
             left: 0, right: 0, bottom: 0, top: "auto",
@@ -137,7 +137,6 @@ export function Popover({
             borderRadius: "16px 16px 0 0",
             overflowY: "auto",
             zIndex: 70,
-            paddingBottom: "env(safe-area-inset-bottom)",
             animation: "slideUp .22s cubic-bezier(.2,.9,.3,1)",
           }}
         >

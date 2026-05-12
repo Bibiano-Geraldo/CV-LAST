@@ -11,6 +11,7 @@ import { SharePopover } from "@/components/popovers/SharePopover";
 import { DownloadPopover } from "@/components/popovers/DownloadPopover";
 import { RECENT_CHATS, SAMPLE_THREAD } from "@/lib/data";
 import { useViewport } from "@/hooks/useViewport";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import type { ChatAttachment, Message, MessageAttachment } from "@/types/chat";
 import type { TemplateId } from "@/types/cv";
 
@@ -25,6 +26,7 @@ const VALID_TEMPLATES: TemplateId[] = ["aurora", "editorial", "mono", "bold"];
 
 export function AppShell() {
   const vp = useViewport();
+  useKeyboardInset();
   const search = useSearchParams();
 
   // CV/template settings
@@ -172,8 +174,8 @@ export function AppShell() {
           onClearAttachments={() => setAttachments([])}
           language={language}
           onLanguageChange={setLanguage}
-          onOpenMenu={vp.isMobile && !sidebarOpen ? () => setSidebarOpen(true) : null}
-          onOpenPreview={vp.isMobile ? () => setMobileView("preview") : null}
+          onOpenMenu={!sidebarOpen ? () => setSidebarOpen(true) : null}
+          onOpenPreview={() => setMobileView("preview")}
         />
 
         <CanvasPanel

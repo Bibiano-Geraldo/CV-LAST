@@ -177,6 +177,7 @@ export function SiteHeader({ activeHref }: { activeHref?: string }) {
           <aside
             role="dialog"
             aria-label="Menu"
+            className="safe-pad-top safe-pad-bottom safe-pad-right"
             style={{
               position: "fixed",
               top: 0,
@@ -189,9 +190,6 @@ export function SiteHeader({ activeHref }: { activeHref?: string }) {
               display: "flex",
               flexDirection: "column",
               animation: "slideInRight .28s cubic-bezier(.16,1,.3,1)",
-              paddingTop: "env(safe-area-inset-top)",
-              paddingBottom: "env(safe-area-inset-bottom)",
-              paddingRight: "env(safe-area-inset-right)",
             }}
           >
             {/* Drawer header */}
